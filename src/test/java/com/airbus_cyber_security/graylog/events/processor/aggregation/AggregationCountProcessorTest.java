@@ -24,38 +24,31 @@ import com.airbus_cyber_security.graylog.events.processor.aggregation.checks.Thr
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import org.graylog.events.event.*;
+import org.graylog.events.event.Event;
+import org.graylog.events.event.EventDto;
+import org.graylog.events.event.EventFactory;
+import org.graylog.events.event.EventOriginContext;
 import org.graylog.events.notifications.EventNotificationSettings;
 import org.graylog.events.processor.*;
+import org.graylog.events.processor.aggregation.AggregationSearch;
 import org.graylog.events.search.MoreSearch;
 import org.graylog2.indexer.messages.Messages;
-import org.graylog2.indexer.results.CountResult;
-import org.graylog2.indexer.results.ResultMessage;
-import org.graylog2.indexer.results.SearchResult;
-import org.graylog2.indexer.searches.Sorting;
+import org.graylog2.indexer.searches.Searches;
 import org.graylog2.plugin.Tools;
 import org.graylog2.plugin.indexer.searches.timeranges.AbsoluteRange;
-import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
 import org.graylog2.plugin.streams.Stream;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import java.util.*;
+import java.util.HashSet;
 
-import static org.junit.Assert.assertNotEquals;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 
 public class AggregationCountProcessorTest {
 
@@ -70,6 +63,8 @@ public class AggregationCountProcessorTest {
     private EventProcessorDependencyCheck dependencyCheck;
     @Mock
     private MoreSearch moreSearch;
+    @Mock
+    private Searches searches;
     @Mock
     private Messages messages;
 
@@ -99,8 +94,10 @@ public class AggregationCountProcessorTest {
                 .priority(1)
                 .build();
 
+        AggregationSearch.Factory aggregationSearchFactory = null; // TODO find a way to have this
+
         this.subject = new AggregationCountProcessor(eventDefinition, this.dependencyCheck,
-                stateService, moreSearch, messages);
+                stateService, searches, moreSearch, messages, aggregationSearchFactory);
     }
 
     @Test
@@ -111,7 +108,8 @@ public class AggregationCountProcessorTest {
                 .timerange(timeRange)
                 .build();
 
-        assertThatThrownBy(() -> this.subject.createEvents(eventFactory, parameters, (events) -> {}))
+        assertThatThrownBy(() -> this.subject.createEvents(eventFactory, parameters, (events) -> {
+        }))
                 .hasMessageContaining("Test Correlation")
                 .hasMessageContaining("dto-id")
                 .hasMessageContaining(timeRange.from().toString())
@@ -119,36 +117,36 @@ public class AggregationCountProcessorTest {
                 .isInstanceOf(EventProcessorPreconditionException.class);
     }
 
- /* TODO: Test
-   @Test
-    public void createEventsShouldNotFailWhenThereAreNoMessages() throws EventProcessorException {
-        DateTime now = DateTime.now(DateTimeZone.UTC);
-        AbsoluteRange timeRange = AbsoluteRange.create(now.minusHours(1), now.plusHours(1));
-        AggregationCountProcessorParameters parameters = AggregationCountProcessorParameters.builder()
-                .timerange(timeRange)
-                .build();
+    /* TODO: Test
+      @Test
+       public void createEventsShouldNotFailWhenThereAreNoMessages() throws EventProcessorException {
+           DateTime now = DateTime.now(DateTimeZone.UTC);
+           AbsoluteRange timeRange = AbsoluteRange.create(now.minusHours(1), now.plusHours(1));
+           AggregationCountProcessorParameters parameters = AggregationCountProcessorParameters.builder()
+                   .timerange(timeRange)
+                   .build();
 
-        when(this.dependencyCheck.hasMessagesIndexedUpTo(any(DateTime.class))).thenReturn(true);
-        EventConsumer<List<EventWithContext>> eventConsumer = Mockito.mock(EventConsumer.class);
-        when(this.moreSearch.count(anyString(), any(TimeRange.class), anyString())).thenReturn(CountResult.create(0, 0));
-        this.subject.createEvents(this.eventFactory, parameters, eventConsumer);
-    }
+           when(this.dependencyCheck.hasMessagesIndexedUpTo(any(DateTime.class))).thenReturn(true);
+           EventConsumer<List<EventWithContext>> eventConsumer = Mockito.mock(EventConsumer.class);
+           when(this.moreSearch.count(anyString(), any(TimeRange.class), anyString())).thenReturn(CountResult.create(0, 0));
+           this.subject.createEvents(this.eventFactory, parameters, eventConsumer);
+       }
 
-    @Test
-    public void createEventsShouldSearchMessagesInTheTimeRangeFromParameters() throws EventProcessorException {
-        DateTime now = DateTime.now(DateTimeZone.UTC);
-        AbsoluteRange timeRange = AbsoluteRange.create(now.minusHours(1), now.plusHours(1));
-        AggregationCountProcessorParameters parameters = AggregationCountProcessorParameters.builder()
-                .timerange(timeRange)
-                .build();
+       @Test
+       public void createEventsShouldSearchMessagesInTheTimeRangeFromParameters() throws EventProcessorException {
+           DateTime now = DateTime.now(DateTimeZone.UTC);
+           AbsoluteRange timeRange = AbsoluteRange.create(now.minusHours(1), now.plusHours(1));
+           AggregationCountProcessorParameters parameters = AggregationCountProcessorParameters.builder()
+                   .timerange(timeRange)
+                   .build();
 
-        when(this.dependencyCheck.hasMessagesIndexedUpTo(any(DateTime.class))).thenReturn(true);
-        EventConsumer<List<EventWithContext>> eventConsumer = Mockito.mock(EventConsumer.class);
-        when(this.moreSearch.count(anyString(), any(TimeRange.class), anyString())).thenReturn(CountResult.create(0, 0));
-        this.subject.createEvents(this.eventFactory, parameters, eventConsumer);
-        verify(this.moreSearch).count("*", timeRange, "streams:main stream");
-    }
-*/
+           when(this.dependencyCheck.hasMessagesIndexedUpTo(any(DateTime.class))).thenReturn(true);
+           EventConsumer<List<EventWithContext>> eventConsumer = Mockito.mock(EventConsumer.class);
+           when(this.moreSearch.count(anyString(), any(TimeRange.class), anyString())).thenReturn(CountResult.create(0, 0));
+           this.subject.createEvents(this.eventFactory, parameters, eventConsumer);
+           verify(this.moreSearch).count("*", timeRange, "streams:main stream");
+       }
+   */
     private Event buildDummyEvent() {
         EventDto eventDto = EventDto.builder()
                 .alert(true)

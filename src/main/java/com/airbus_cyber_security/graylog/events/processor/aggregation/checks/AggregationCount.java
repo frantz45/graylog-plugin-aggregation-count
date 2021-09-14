@@ -21,8 +21,10 @@
 package com.airbus_cyber_security.graylog.events.processor.aggregation.checks;
 
 import com.airbus_cyber_security.graylog.events.processor.aggregation.AggregationCountProcessorConfig;
+import org.graylog.events.processor.EventDefinition;
+import org.graylog.events.processor.aggregation.AggregationSearch;
 import org.graylog.events.search.MoreSearch;
-
+import org.graylog2.indexer.searches.Searches;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
 
 import java.util.Locale;
@@ -32,14 +34,15 @@ public class AggregationCount {
 
     private final Check check;
 
-    public AggregationCount(MoreSearch moreSearch, AggregationCountProcessorConfig configuration) {
+    public AggregationCount(Searches searches, MoreSearch moreSearch, AggregationCountProcessorConfig configuration, EventDefinition eventDefinition,
+                            AggregationSearch.Factory aggregationSearchFactory) {
         String resultDescriptionPattern = buildResultDescriptionPattern(configuration);
         Result.Builder resultBuilder = new Result.Builder(resultDescriptionPattern);
         boolean hasFields = !(configuration.groupingFields().isEmpty() && configuration.distinctionFields().isEmpty());
         if (hasFields) {
-            this.check = new AggregationField(configuration, moreSearch, SEARCH_LIMIT, resultBuilder);
+            this.check = new AggregationField(configuration, searches, SEARCH_LIMIT, resultBuilder, aggregationSearchFactory, eventDefinition);
         } else {
-            this.check = new NoFields(configuration, moreSearch, SEARCH_LIMIT, resultBuilder);
+            this.check = new NoFields(configuration, searches, SEARCH_LIMIT, resultBuilder);
         }
     }
 
@@ -55,7 +58,7 @@ public class AggregationCount {
                 + configuration.threshold() + " messages";
 
         if (!configuration.groupingFields().isEmpty()) {
-            result += " with the same value of the fields " + String.join(", ",configuration.groupingFields());
+            result += " with the same value of the fields " + String.join(", ", configuration.groupingFields());
         }
 
         if (!configuration.groupingFields().isEmpty() && !configuration.distinctionFields().isEmpty()) {
@@ -63,7 +66,7 @@ public class AggregationCount {
         }
 
         if (!configuration.distinctionFields().isEmpty()) {
-            result += " with distinct values of the fields " + String.join(", ",configuration.distinctionFields());
+            result += " with distinct values of the fields " + String.join(", ", configuration.distinctionFields());
         }
 
         result += ". (Executes every: " + configuration.executeEveryMs() + " milliseconds)";

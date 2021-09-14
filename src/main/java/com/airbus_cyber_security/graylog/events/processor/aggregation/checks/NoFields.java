@@ -23,10 +23,10 @@ package com.airbus_cyber_security.graylog.events.processor.aggregation.checks;
 import com.airbus_cyber_security.graylog.events.processor.aggregation.AggregationCountProcessorConfig;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import org.graylog.events.search.MoreSearch;
 import org.graylog2.indexer.results.CountResult;
 import org.graylog2.indexer.results.ResultMessage;
 import org.graylog2.indexer.results.SearchResult;
+import org.graylog2.indexer.searches.Searches;
 import org.graylog2.indexer.searches.Sorting;
 import org.graylog2.plugin.Message;
 import org.graylog2.plugin.MessageSummary;
@@ -37,13 +37,13 @@ import java.util.List;
 public class NoFields implements Check {
 
     private final AggregationCountProcessorConfig configuration;
-    private final MoreSearch moreSearch;
+    private final Searches searches;
     private final int searchLimit;
     private final Result.Builder resultBuilder;
 
-    public NoFields(AggregationCountProcessorConfig configuration, MoreSearch moreSearch, int searchLimit, Result.Builder resultBuilder) {
+    public NoFields(AggregationCountProcessorConfig configuration, Searches searches, int searchLimit, Result.Builder resultBuilder) {
         this.configuration = configuration;
-        this.moreSearch = moreSearch;
+        this.searches = searches;
         this.searchLimit = searchLimit;
         this.resultBuilder = resultBuilder;
     }
@@ -65,7 +65,7 @@ public class NoFields implements Check {
 
     public Result run(TimeRange range) {
         String filter = buildQueryFilter(this.configuration.stream(), this.configuration.searchQuery());
-        CountResult result = this.moreSearch.count("*", range, filter);
+        CountResult result = this.searches.count("*", range, filter);
         long count = result.count();
         boolean triggered;
         switch (ThresholdType.fromString(this.configuration.thresholdType())) {
@@ -83,7 +83,7 @@ public class NoFields implements Check {
             return this.resultBuilder.buildEmpty();
         }
         List<MessageSummary> summaries = Lists.newArrayList();
-        SearchResult backlogResult = this.moreSearch.search("*", filter, range, this.searchLimit, 0, new Sorting("timestamp", Sorting.Direction.DESC));
+        SearchResult backlogResult = this.searches.search("*", filter, range, this.searchLimit, 0, new Sorting("timestamp", Sorting.Direction.DESC));
 
         for (ResultMessage resultMessage: backlogResult.getResults()) {
             Message msg = resultMessage.getMessage();

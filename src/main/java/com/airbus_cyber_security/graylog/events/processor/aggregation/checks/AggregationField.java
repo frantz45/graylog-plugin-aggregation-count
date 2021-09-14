@@ -21,28 +21,31 @@
 package com.airbus_cyber_security.graylog.events.processor.aggregation.checks;
 
 import com.airbus_cyber_security.graylog.events.processor.aggregation.AggregationCountProcessorConfig;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import org.graylog.events.search.MoreSearch;
+import org.graylog.events.processor.EventDefinition;
+import org.graylog.events.processor.EventProcessorException;
+import org.graylog.events.processor.aggregation.*;
 import org.graylog2.indexer.results.ResultMessage;
 import org.graylog2.indexer.results.SearchResult;
-import org.graylog2.indexer.results.TermsResult;
+import org.graylog2.indexer.searches.Searches;
 import org.graylog2.indexer.searches.Sorting;
 import org.graylog2.plugin.Message;
 import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
+import org.graylog2.rest.models.search.responses.TermsResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AggregationField implements Check {
     private static final Logger LOG = LoggerFactory.getLogger(AggregationField.class);
 
     private final AggregationCountProcessorConfig configuration;
-    private final MoreSearch moreSearch;
+    private final Searches searches;
     private final int searchLimit;
     private final Result.Builder resultBuilder;
 
@@ -51,12 +54,17 @@ public class AggregationField implements Check {
     private String aggregatesThresholdType;
     private int aggregatesThreshold;
 
-    public AggregationField(AggregationCountProcessorConfig configuration, MoreSearch moreSearch, int searchLimit, Result.Builder resultBuilder) {
+    private final AggregationSearch.Factory aggregationSearchFactory;
+    private final EventDefinition eventDefinition;
+
+    public AggregationField(AggregationCountProcessorConfig configuration, Searches searches, int searchLimit, Result.Builder resultBuilder, AggregationSearch.Factory aggregationSearchFactory, EventDefinition eventDefinition) {
         this.configuration = configuration;
-        this.moreSearch = moreSearch;
+        this.searches = searches;
         this.searchLimit = searchLimit;
         this.resultBuilder = resultBuilder;
         this.setThresholds(configuration);
+        this.aggregationSearchFactory = aggregationSearchFactory;
+        this.eventDefinition = eventDefinition;
     }
 
     private void setThresholds(AggregationCountProcessorConfig configuration) {
@@ -97,16 +105,16 @@ public class AggregationField implements Check {
     public long getMatchedTerm(Map<String, List<String>> matchedTerms, TermsResult termsResult) {
         long ruleCount = 0;
         boolean isFirstTriggered = true;
-        for (Map.Entry<String, Long> term: termsResult.getTerms().entrySet()) {
+        for (Map.Entry<String, Long> term : termsResult.terms().entrySet()) {
 
             String matchedFieldValue = term.getKey();
             Long count = term.getValue();
 
             if (isTriggered(ThresholdType.fromString(thresholdType), threshold, count)) {
-                String [] valuesFields = matchedFieldValue.split(" - ");
-                int i=0;
+                String[] valuesFields = matchedFieldValue.split(" - ");
+                int i = 0;
                 StringBuilder bldStringValuesAgregates = new StringBuilder("Agregates:");
-                for (String field: getFields()) {
+                for (String field : getFields()) {
                     if (this.configuration.groupingFields().contains(field) && i < valuesFields.length) {
                         bldStringValuesAgregates.append(valuesFields[i]);
                     }
@@ -114,13 +122,13 @@ public class AggregationField implements Check {
                 }
                 String valuesAgregates = bldStringValuesAgregates.toString();
 
-                if(matchedTerms.containsKey(valuesAgregates)) {
+                if (matchedTerms.containsKey(valuesAgregates)) {
                     matchedTerms.get(valuesAgregates).add(matchedFieldValue);
                 } else {
                     matchedTerms.put(valuesAgregates, Lists.newArrayList(matchedFieldValue));
                 }
 
-                if(isFirstTriggered) {
+                if (isFirstTriggered) {
                     ruleCount = count;
                     isFirstTriggered = false;
                 }
@@ -138,9 +146,9 @@ public class AggregationField implements Check {
     }
 
     private void addSearchMessages(List<MessageSummary> summaries, String searchQuery, String filter, TimeRange range) {
-        final SearchResult backlogResult = this.moreSearch.search(searchQuery, filter,
+        final SearchResult backlogResult = this.searches.search(searchQuery, filter,
                 range, this.searchLimit, 0, new Sorting(Message.FIELD_TIMESTAMP, Sorting.Direction.DESC));
-        for (ResultMessage resultMessage: backlogResult.getResults()) {
+        for (ResultMessage resultMessage : backlogResult.getResults()) {
             if (summaries.size() >= this.searchLimit) {
                 break;
             }
@@ -149,10 +157,10 @@ public class AggregationField implements Check {
     }
 
     public boolean getListMessageSummary(List<MessageSummary> summaries, Map<String, List<String>> matchedTerms,
-                                          String firstField, List<String> nextFields, TimeRange range, String filter) {
-        Boolean ruleTriggered = false;
+                                         String firstField, List<String> nextFields, TimeRange range, String filter) {
+        boolean ruleTriggered = false;
         Map<String, Long> frequenciesFields = new HashMap<>();
-        for (Map.Entry<String, List<String>> matchedTerm: matchedTerms.entrySet()) {
+        for (Map.Entry<String, List<String>> matchedTerm : matchedTerms.entrySet()) {
             String valuesAgregates = matchedTerm.getKey();
             List<String> listAggregates = matchedTerm.getValue();
 
@@ -162,11 +170,11 @@ public class AggregationField implements Check {
             }
         }
 
-        for (Map.Entry<String, Long> frequencyField: frequenciesFields.entrySet()) {
+        for (Map.Entry<String, Long> frequencyField : frequenciesFields.entrySet()) {
             if (isTriggered(ThresholdType.fromString(aggregatesThresholdType), aggregatesThreshold, frequencyField.getValue())) {
                 ruleTriggered = true;
 
-                for (String matchedFieldValue: matchedTerms.get(frequencyField.getKey())) {
+                for (String matchedFieldValue : matchedTerms.get(frequencyField.getKey())) {
                     String searchQuery = buildSearchQuery(firstField, nextFields, matchedFieldValue);
 
                     LOG.debug("Search: " + searchQuery);
@@ -182,26 +190,27 @@ public class AggregationField implements Check {
 
     /**
      * Check if the condition is triggered
-     *
+     * <p>
      * This condition is triggered when the number of messages with the same value of some message fields
      * and with distinct values of other messages fields is higher/lower than a defined threshold in a given time range.
      *
      * @return AggregationCountCheckResult
-     * 					Result Description and list of messages that satisfy the conditions
+     * Result Description and list of messages that satisfy the conditions
      */
     public Result run(TimeRange range) {
-        final String filter = "streams:" + this.configuration.stream();
-        String firstField = getFields().iterator().next();
         List<String> nextFields = new ArrayList<>(getFields());
-        nextFields.remove(0);
+        String firstField = nextFields.remove(0);
 
         /* Get the matched term */
-        TermsResult result = this.moreSearch.terms(firstField, nextFields, this.searchLimit, this.configuration.searchQuery(), filter, range, Sorting.Direction.DESC);
+        TermsResult result = getTermsResult(this.configuration.stream(), range, this.searchLimit);
+        //this.searches.terms(firstField, nextFields, this.searchLimit, this.configuration.searchQuery(), filter, range, Sorting.Direction.DESC);
+
         Map<String, List<String>> matchedTerms = new HashMap<>();
-        long  ruleCount = getMatchedTerm(matchedTerms, result);
+        long ruleCount = getMatchedTerm(matchedTerms, result);
 
         /* Get the list of summary messages */
         List<MessageSummary> summaries = Lists.newArrayListWithCapacity(this.searchLimit);
+        final String filter = "streams:" + this.configuration.stream();
         boolean ruleTriggered = getListMessageSummary(summaries, matchedTerms, firstField, nextFields, range, filter);
 
         /* If rule triggered return the check result */
@@ -217,4 +226,61 @@ public class AggregationField implements Check {
 
         return this.resultBuilder.buildEmpty();
     }
+
+    public TermsResult getTermsResult(String stream, TimeRange timeRange, long limit) {
+        ImmutableList.Builder<AggregationSeries> seriesBuilder = ImmutableList.builder();
+        for (String groupingField : this.configuration.groupingFields()) { // TODO check for first grouping field (maybe unexpected date)
+            seriesBuilder.add(AggregationSeries.builder().id("aggregation_id" + groupingField).function(AggregationFunction.COUNT).field(groupingField).build());
+        }
+        AggregationEventProcessorConfig config = AggregationEventProcessorConfig.Builder.create()
+                .groupBy(new ArrayList<>(this.configuration.groupingFields()))
+                .query(this.configuration.searchQuery())
+                .streams(ImmutableSet.of(stream))
+                .executeEveryMs(this.configuration.executeEveryMs())
+                .searchWithinMs(this.configuration.searchWithinMs())
+//                .conditions() // TODO or not TODO, that is the question
+                .series(seriesBuilder.build())
+                .build(); // TODO
+        AggregationEventProcessorParameters parameters = AggregationEventProcessorParameters.builder()
+                .streams(ImmutableSet.of(stream)).batchSize(Long.valueOf(limit).intValue())
+                .timerange(timeRange)
+                .build(); // TODO Check if this is correct
+        String owner = "event-processor-" + AggregationEventProcessorConfig.TYPE_NAME + "-" + this.eventDefinition.id();
+        AggregationSearch search = this.aggregationSearchFactory.create(config, parameters, owner, this.eventDefinition);
+        try {
+            AggregationResult result = search.doSearch();
+            return convertResult(config, result);
+        } catch (EventProcessorException e) {
+            e.printStackTrace();
+        }
+        return convertResult(config, null); // TODO improve error case?
+    }
+
+    private TermsResult convertResult(AggregationEventProcessorConfig config, AggregationResult result) {
+        ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
+        long total = 0;
+        if (null != result) {
+            total = result.totalAggregatedMessages();
+            result.keyResults().forEach(keyResult -> {
+                keyResult.seriesValues().forEach(seriesValue -> {
+                    String key = buildTermKey(seriesValue.key());
+                    Long value = Double.valueOf(seriesValue.value()).longValue();
+                    terms.put(key, value);
+                });
+            });
+        }
+        return TermsResult.create(0, terms.build(), 0, 0, total, config.query());
+    }
+
+    private String buildTermKey(Collection<String> keys) {
+        StringBuilder builder = new StringBuilder();
+        keys.forEach(key -> {
+            if (0 < builder.length()) {
+                builder.append(" - ");
+            }
+            builder.append(key);
+        });
+        return builder.toString();
+    }
+
 }
