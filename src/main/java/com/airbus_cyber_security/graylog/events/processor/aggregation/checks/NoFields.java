@@ -63,6 +63,7 @@ public class NoFields implements Check {
         return builder.toString();
     }
 
+    @Override
     public Result run(TimeRange range) {
         String filter = buildQueryFilter(this.configuration.stream(), this.configuration.searchQuery());
         CountResult result = this.searches.count("*", range, filter);

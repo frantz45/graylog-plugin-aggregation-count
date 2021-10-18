@@ -197,6 +197,7 @@ public class AggregationField implements Check {
      * @return AggregationCountCheckResult
      * Result Description and list of messages that satisfy the conditions
      */
+    @Override
     public Result run(TimeRange range) {
         List<String> nextFields = new ArrayList<>(getFields());
         String firstField = nextFields.remove(0);
