@@ -13,4 +13,9 @@ node/
 !/.mvn/wrapper/maven-wrapper.jar
 /node_modules/
 
+# Location for built plugin
+runtime/graylog/plugin/
+
+# IDE
 /.idea/
+
