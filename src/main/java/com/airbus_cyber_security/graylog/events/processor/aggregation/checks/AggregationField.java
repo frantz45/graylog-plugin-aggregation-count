@@ -259,13 +259,13 @@ public class AggregationField implements Check {
 
     private TermsResult convertResult(String query, AggregationResult result) {
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
-        result.keyResults().forEach(keyResult -> {
-            keyResult.seriesValues().forEach(seriesValue -> {
+        for (AggregationKeyResult keyResult : result.keyResults()) {
+            for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
                 String key = buildTermKey(seriesValue.key());
                 Long value = Double.valueOf(seriesValue.value()).longValue();
                 terms.put(key, value);
-            });
-        });
+            }
+        }
 
         long total = result.totalAggregatedMessages();
         return TermsResult.create(0, terms.build(), 0, 0, total, query);
