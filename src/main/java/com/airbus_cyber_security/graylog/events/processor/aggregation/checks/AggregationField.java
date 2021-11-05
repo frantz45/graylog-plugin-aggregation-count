@@ -251,22 +251,22 @@ public class AggregationField implements Check {
         } catch (EventProcessorException e) {
             e.printStackTrace();
         }
-        return convertResult(config, null); // TODO improve error case?
+
+        ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
+        return TermsResult.create(0, terms.build(), 0, 0, 0, config.query()); // TODO improve error case?
     }
 
     private TermsResult convertResult(AggregationEventProcessorConfig config, AggregationResult result) {
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
-        long total = 0;
-        if (null != result) {
-            total = result.totalAggregatedMessages();
-            result.keyResults().forEach(keyResult -> {
-                keyResult.seriesValues().forEach(seriesValue -> {
-                    String key = buildTermKey(seriesValue.key());
-                    Long value = Double.valueOf(seriesValue.value()).longValue();
-                    terms.put(key, value);
-                });
+        result.keyResults().forEach(keyResult -> {
+            keyResult.seriesValues().forEach(seriesValue -> {
+                String key = buildTermKey(seriesValue.key());
+                Long value = Double.valueOf(seriesValue.value()).longValue();
+                terms.put(key, value);
             });
-        }
+        });
+
+        long total = result.totalAggregatedMessages();
         return TermsResult.create(0, terms.build(), 0, 0, total, config.query());
     }
 
