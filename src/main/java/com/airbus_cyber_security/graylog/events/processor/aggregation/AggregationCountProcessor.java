@@ -32,7 +32,6 @@ import org.graylog.events.processor.*;
 import org.graylog.events.processor.aggregation.AggregationSearch;
 import org.graylog.events.search.MoreSearch;
 import org.graylog.plugins.views.search.Parameter;
-import org.graylog2.indexer.messages.Messages;
 import org.graylog2.indexer.results.ResultMessage;
 import org.graylog2.indexer.searches.Searches;
 import org.graylog2.plugin.Message;
@@ -59,7 +58,6 @@ public class AggregationCountProcessor implements EventProcessor {
     private final EventDefinition eventDefinition;
     private final EventProcessorDependencyCheck dependencyCheck;
     private final DBEventProcessorStateService stateService;
-    private final Messages messages;
     private final AggregationCount aggregationCount;
     private final AggregationCountProcessorConfig configuration;
     private final MoreSearch moreSearch;
@@ -68,12 +66,11 @@ public class AggregationCountProcessor implements EventProcessor {
 
     @Inject
     public AggregationCountProcessor(@Assisted EventDefinition eventDefinition, EventProcessorDependencyCheck dependencyCheck,
-                                     DBEventProcessorStateService stateService, Searches searches, MoreSearch moreSearch, Messages messages,
+                                     DBEventProcessorStateService stateService, Searches searches, MoreSearch moreSearch,
                                      AggregationSearch.Factory aggregationSearchFactory) {
         this.eventDefinition = eventDefinition;
         this.dependencyCheck = dependencyCheck;
         this.stateService = stateService;
-        this.messages = messages;
         this.configuration = (AggregationCountProcessorConfig) eventDefinition.config();
         this.aggregationCount = new AggregationCount(searches, moreSearch, configuration, eventDefinition, aggregationSearchFactory);
         this.moreSearch = moreSearch;

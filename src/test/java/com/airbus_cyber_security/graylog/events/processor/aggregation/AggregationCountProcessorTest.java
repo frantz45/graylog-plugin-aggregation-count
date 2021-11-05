@@ -29,7 +29,6 @@ import org.graylog.events.notifications.EventNotificationSettings;
 import org.graylog.events.processor.*;
 import org.graylog.events.processor.aggregation.AggregationSearch;
 import org.graylog.events.search.MoreSearch;
-import org.graylog2.indexer.messages.Messages;
 import org.graylog2.indexer.searches.Searches;
 import org.graylog2.plugin.Tools;
 import org.graylog2.plugin.indexer.searches.timeranges.AbsoluteRange;
@@ -62,8 +61,6 @@ public class AggregationCountProcessorTest {
     private MoreSearch moreSearch;
     @Mock
     private Searches searches;
-    @Mock
-    private Messages messages;
 
     private AggregationCountProcessor subject;
 
@@ -94,7 +91,7 @@ public class AggregationCountProcessorTest {
         AggregationSearch.Factory aggregationSearchFactory = null; // TODO find a way to have this
 
         this.subject = new AggregationCountProcessor(eventDefinition, this.dependencyCheck,
-                stateService, searches, moreSearch, messages, aggregationSearchFactory);
+                stateService, searches, moreSearch, aggregationSearchFactory);
     }
 
     @Test
