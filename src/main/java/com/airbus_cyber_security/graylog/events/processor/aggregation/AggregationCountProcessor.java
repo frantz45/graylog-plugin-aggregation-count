@@ -91,26 +91,32 @@ public class AggregationCountProcessor implements EventProcessor {
         }
 
         Result aggregationCountCheckResult = this.aggregationCount.runCheck(timerange);
+
+        if (aggregationCountCheckResult.getMessageSummaries() != null && !aggregationCountCheckResult.getMessageSummaries().isEmpty()) {
+            eventConsumer.accept(eventsFromResult(eventFactory, timerange, aggregationCountCheckResult));
+        }
+
+        // Update the state for this processor! This state will be used for dependency checks between event processors.
+        stateService.setState(eventDefinition.id(), timerange.getFrom(), timerange.getTo());
+    }
+
+    private ImmutableList<EventWithContext> eventsFromResult(EventFactory eventFactory, TimeRange timerange, Result aggregationCountCheckResult) {
         Event event = eventFactory.createEvent(eventDefinition, timerange.getFrom(), aggregationCountCheckResult.getResultDescription());
         event.addSourceStream(configuration.stream());
 
         event.setTimerangeStart(timerange.getFrom());
         event.setTimerangeEnd(timerange.getTo());
 
-        if (aggregationCountCheckResult.getMessageSummaries() != null && !aggregationCountCheckResult.getMessageSummaries().isEmpty()) {
-            MessageSummary msgSummary = aggregationCountCheckResult.getMessageSummaries().get(0);
-            event.setOriginContext(EventOriginContext.elasticsearchMessage(msgSummary.getIndex(), msgSummary.getId()));
-            LOG.debug("Created event: [id: " + event.getId() + "], [message: " + event.getMessage() + "].");
+        MessageSummary msgSummary = aggregationCountCheckResult.getMessageSummaries().get(0);
+        event.setOriginContext(EventOriginContext.elasticsearchMessage(msgSummary.getIndex(), msgSummary.getId()));
+        LOG.debug("Created event: [id: " + event.getId() + "], [message: " + event.getMessage() + "].");
 
-            final ImmutableList.Builder<EventWithContext> listEvents = ImmutableList.builder();
-            // TODO: Choose a better message for the context
-            EventWithContext eventWithContext = EventWithContext.create(event, msgSummary.getRawMessage());
-            listEvents.add(eventWithContext);
+        final ImmutableList.Builder<EventWithContext> listEvents = ImmutableList.builder();
+        // TODO: Choose a better message for the context
+        EventWithContext eventWithContext = EventWithContext.create(event, msgSummary.getRawMessage());
+        listEvents.add(eventWithContext);
 
-            eventConsumer.accept(listEvents.build());
-        }
-        // Update the state for this processor! This state will be used for dependency checks between event processors.
-        stateService.setState(eventDefinition.id(), timerange.getFrom(), timerange.getTo());
+        return listEvents.build();
     }
 
     @Override
