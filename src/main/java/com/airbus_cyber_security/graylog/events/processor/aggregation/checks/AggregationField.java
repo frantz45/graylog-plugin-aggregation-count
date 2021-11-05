@@ -230,9 +230,10 @@ public class AggregationField implements Check {
         for (String groupingField : this.configuration.groupingFields()) { // TODO check for first grouping field (maybe unexpected date)
             seriesBuilder.add(AggregationSeries.builder().id("aggregation_id" + groupingField).function(AggregationFunction.COUNT).field(groupingField).build());
         }
+        String query = this.configuration.searchQuery();
         AggregationEventProcessorConfig config = AggregationEventProcessorConfig.Builder.create()
                 .groupBy(new ArrayList<>(this.configuration.groupingFields()))
-                .query(this.configuration.searchQuery())
+                .query(query)
                 .streams(ImmutableSet.of(stream))
                 .executeEveryMs(this.configuration.executeEveryMs())
                 .searchWithinMs(this.configuration.searchWithinMs())
@@ -247,16 +248,16 @@ public class AggregationField implements Check {
         AggregationSearch search = this.aggregationSearchFactory.create(config, parameters, owner, this.eventDefinition);
         try {
             AggregationResult result = search.doSearch();
-            return convertResult(config, result);
+            return convertResult(query, result);
         } catch (EventProcessorException e) {
             e.printStackTrace();
         }
 
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
-        return TermsResult.create(0, terms.build(), 0, 0, 0, config.query()); // TODO improve error case?
+        return TermsResult.create(0, terms.build(), 0, 0, 0, query); // TODO improve error case?
     }
 
-    private TermsResult convertResult(AggregationEventProcessorConfig config, AggregationResult result) {
+    private TermsResult convertResult(String query, AggregationResult result) {
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
         result.keyResults().forEach(keyResult -> {
             keyResult.seriesValues().forEach(seriesValue -> {
@@ -267,7 +268,7 @@ public class AggregationField implements Check {
         });
 
         long total = result.totalAggregatedMessages();
-        return TermsResult.create(0, terms.build(), 0, 0, total, config.query());
+        return TermsResult.create(0, terms.build(), 0, 0, total, query);
     }
 
     private String buildTermKey(Collection<String> keys) {
