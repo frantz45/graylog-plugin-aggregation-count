@@ -16,6 +16,8 @@ node/
 # Location for built plugin
 runtime/graylog/plugin/
 
+__pycache__/
+
 # IDE
-/.idea/
+.idea/
 
