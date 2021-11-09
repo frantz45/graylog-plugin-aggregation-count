@@ -99,6 +99,4 @@ class GraylogRestApi:
             'priority': 2,
             'title': title
         }
-        r = self.post('events/definitions', event_definition)
-        print(r.status_code)
-        print(r.json())
+        self.post('events/definitions', event_definition)
