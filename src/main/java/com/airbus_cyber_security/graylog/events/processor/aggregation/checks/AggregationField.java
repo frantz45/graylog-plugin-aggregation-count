@@ -227,9 +227,7 @@ public class AggregationField implements Check {
 
     public TermsResult getTermsResult(String stream, TimeRange timeRange, long limit) {
         ImmutableList.Builder<AggregationSeries> seriesBuilder = ImmutableList.builder();
-        for (String groupingField : this.configuration.groupingFields()) { // TODO check for first grouping field (maybe unexpected date)
-            seriesBuilder.add(AggregationSeries.builder().id("aggregation_id" + groupingField).function(AggregationFunction.COUNT).field(groupingField).build());
-        }
+        seriesBuilder.add(AggregationSeries.builder().id("aggregation_id").function(AggregationFunction.COUNT).build());
         String query = this.configuration.searchQuery();
         AggregationEventProcessorConfig config = AggregationEventProcessorConfig.Builder.create()
                 .groupBy(new ArrayList<>(this.configuration.groupingFields()))

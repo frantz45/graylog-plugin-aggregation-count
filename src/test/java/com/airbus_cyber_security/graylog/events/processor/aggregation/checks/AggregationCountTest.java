@@ -309,6 +309,7 @@ public class AggregationCountTest {
         }
 
         AggregationKeyResult aggregationKeyResult = mock(AggregationKeyResult.class);
+        when(aggregationKeyResult.key()).thenReturn(ImmutableList.of("user", "ip1"));
         when(aggregationKeyResult.seriesValues()).thenReturn(seriesValues.build());
 
         AggregationResult aggregationResult = mock(AggregationResult.class);
