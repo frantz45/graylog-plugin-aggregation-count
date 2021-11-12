@@ -9,7 +9,6 @@ import time
 from graylog_server import GraylogServer
 from graylog_rest_api import GraylogRestApi
 from graylog_inputs import GraylogInputs
-from requests.exceptions import ConnectionError
 
 _PERIOD = 5
 
@@ -18,21 +17,9 @@ class Test(TestCase):
 
     def setUp(self) -> None:
         self._graylog = GraylogServer('../runtime')
-        self._graylog_rest_api = GraylogRestApi()
         self._graylog.start()
-        print('Waiting for graylog to start...')
-
-        # TODO move as a method in _graylog_rest_api
-        #only for 60s maximum
-        while True:
-            try:
-                response = self._graylog_rest_api.get('system/deflector')
-                body = response.json()
-                if body['is_up']:
-                    break
-            except ConnectionError:
-                pass
-            time.sleep(1)
+        self._graylog_rest_api = GraylogRestApi()
+        self._graylog_rest_api.wait_until_graylog_is_started()
 
     def tearDown(self) -> None:
         self._graylog.stop()

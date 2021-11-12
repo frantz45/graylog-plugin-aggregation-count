@@ -100,3 +100,23 @@ class GraylogRestApi:
             'title': title
         }
         self.post('events/definitions', event_definition)
+
+    def wait_until_graylog_is_started(self):
+        """
+        We wait until the default deflector is up, as it seems to be the last operation done on startup
+        This might have to change in the future, if graylog changes its ways...
+        :return:
+        """
+        print('Waiting for graylog to start...')
+
+        # TODO move as a method in _graylog_rest_api
+        #only for 60s maximum
+        while True:
+            try:
+                response = self.get('system/deflector')
+                body = response.json()
+                if body['is_up']:
+                    break
+            except ConnectionError:
+                pass
+            time.sleep(1)
