@@ -8,7 +8,6 @@ from unittest import TestCase
 import time
 from graylog_server import GraylogServer
 from graylog_rest_api import GraylogRestApi
-from graylog_inputs import GraylogInputs
 
 _PERIOD = 5
 
@@ -16,6 +15,7 @@ _PERIOD = 5
 class Test(TestCase):
 
     def setUp(self) -> None:
+        # TODO maybe merge _graylog and _graylog_rest_api
         self._graylog = GraylogServer('../runtime')
         self._graylog.start()
         self._graylog_rest_api = GraylogRestApi()
@@ -25,9 +25,7 @@ class Test(TestCase):
         self._graylog.stop()
 
     def test_send_alert_should_not_raise_exception_when_there_is_a_distinct_field(self):
-        # TODO put together?
-        self._graylog_rest_api.create_gelf_input()
-        with GraylogInputs() as gelf_inputs:
+        with self._graylog_rest_api.create_gelf_input() as gelf_inputs:
             self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 2), ['port'], period=_PERIOD)
             gelf_inputs.send({'_port': 80})
 
@@ -35,9 +33,7 @@ class Test(TestCase):
             self.assertNotIn('java.lang.IllegalStateException', logs)
 
     def test_send_alerts_should_trigger_alert_when_there_are_distinct_ports(self):
-        # TODO put together?
-        self._graylog_rest_api.create_gelf_input()
-        with GraylogInputs() as gelf_inputs:
+        with self._graylog_rest_api.create_gelf_input() as gelf_inputs:
             self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 1), ['port'], period=_PERIOD)
             gelf_inputs.send({'_port': 80})
             gelf_inputs.send({'_port': 81})

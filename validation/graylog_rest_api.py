@@ -2,6 +2,7 @@ import requests
 import time
 from urllib import parse
 from requests.exceptions import ConnectionError
+from graylog_inputs import GraylogInputs
 
 STREAM_ALL_MESSAGES = "000000000000000000000001"
 _AUTH = ('admin', 'admin')
@@ -64,6 +65,7 @@ class GraylogRestApi:
         identifier = response.json()['id']
         while not self._input_is_running(identifier):
             time.sleep(.1)
+        return GraylogInputs()
 
     def create_aggregation_count(self, title, threshold, distinct_fields=None, period=5):
         """
