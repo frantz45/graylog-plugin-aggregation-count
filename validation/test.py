@@ -24,9 +24,17 @@ class Test(TestCase):
     def tearDown(self) -> None:
         self._graylog.stop()
 
+    def test_send_alert_should_not_trigger_a_null_pointer_exception(self):
+        self._graylog_rest_api.create_aggregation_count(('MORE', 0), ['port'], period=_PERIOD)
+        with self._graylog_rest_api.create_gelf_input() as gelf_inputs:
+            gelf_inputs.send({})
+
+            logs = self._graylog.extract_logs(2*_PERIOD)
+            self.assertNotIn('java.lang.NullPointerException', logs)
+
     def test_send_alert_should_not_raise_exception_when_there_is_a_distinct_field(self):
         with self._graylog_rest_api.create_gelf_input() as gelf_inputs:
-            self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 2), ['port'], period=_PERIOD)
+            self._graylog_rest_api.create_aggregation_count(('MORE', 2), ['port'], period=_PERIOD)
             gelf_inputs.send({'_port': 80})
 
             logs = self._graylog.extract_logs(2*_PERIOD)
@@ -34,7 +42,7 @@ class Test(TestCase):
 
     def test_send_alerts_should_trigger_alert_when_there_are_distinct_ports(self):
         with self._graylog_rest_api.create_gelf_input() as gelf_inputs:
-            self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 1), ['port'], period=_PERIOD)
+            self._graylog_rest_api.create_aggregation_count(('MORE', 1), ['port'], period=_PERIOD)
             gelf_inputs.send({'_port': 80})
             gelf_inputs.send({'_port': 81})
             time.sleep(_PERIOD)

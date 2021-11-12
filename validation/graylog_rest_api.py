@@ -67,7 +67,7 @@ class GraylogRestApi:
             time.sleep(.1)
         return GraylogInputs()
 
-    def create_aggregation_count(self, title, threshold, distinct_fields=None, period=5):
+    def create_aggregation_count(self, threshold, distinct_fields=None, period=5):
         """
         :param title:
         :param threshold:
@@ -100,7 +100,7 @@ class GraylogRestApi:
             },
             'notifications': [],
             'priority': 2,
-            'title': title
+            'title': 'AAA'
         }
         self.post('events/definitions', event_definition)
 
