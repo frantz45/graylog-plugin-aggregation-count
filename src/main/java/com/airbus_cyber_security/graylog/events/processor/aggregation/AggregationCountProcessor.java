@@ -38,7 +38,6 @@ import org.graylog2.plugin.Message;
 import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.AbsoluteRange;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
-import org.graylog2.rest.models.search.responses.TermsResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,8 +133,7 @@ public class AggregationCountProcessor implements EventProcessor {
             String firstField = nextFields.remove(0);
 
             /* Get the matched term */
-            TermsResult result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, (int) limit);
-            //this.searches.terms(firstField, nextFields, this.searchLimit, this.configuration.searchQuery(), filter, range, Sorting.Direction.DESC);
+            Map<String, Long> result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, (int) limit);
 
             Map<String, List<String>> matchedTerms = new HashMap<>();
             long ruleCount = aggregationField.getMatchedTerm(matchedTerms, result);

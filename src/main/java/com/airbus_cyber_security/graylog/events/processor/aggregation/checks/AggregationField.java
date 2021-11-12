@@ -94,15 +94,10 @@ public class AggregationField implements Check {
                 ((thresholdType == ThresholdType.LESS) && (count < threshold)));
     }
 
-    /**
-     * @param matchedTerms non-null list of matched terms to return
-     * @param termsResult
-     * @return return the rule count
-     **/
-    public long getMatchedTerm(Map<String, List<String>> matchedTerms, TermsResult termsResult) {
+    public long getMatchedTerm(Map<String, List<String>> matchedTerms, Map<String, Long> results) {
         long ruleCount = 0;
         boolean isFirstTriggered = true;
-        for (Map.Entry<String, Long> term : termsResult.terms().entrySet()) {
+        for (Map.Entry<String, Long> term : results.entrySet()) {
 
             String matchedFieldValue = term.getKey();
             Long count = term.getValue();
@@ -200,7 +195,7 @@ public class AggregationField implements Check {
         String firstField = nextFields.remove(0);
 
         /* Get the matched term */
-        TermsResult result = getTermsResult(this.configuration.stream(), range, this.searchLimit);
+        Map<String, Long> result = getTermsResult(this.configuration.stream(), range, this.searchLimit);
         //this.searches.terms(firstField, nextFields, this.searchLimit, this.configuration.searchQuery(), filter, range, Sorting.Direction.DESC);
 
         Map<String, List<String>> matchedTerms = new HashMap<>();
@@ -225,13 +220,12 @@ public class AggregationField implements Check {
         return this.resultBuilder.buildEmpty();
     }
 
-    public TermsResult getTermsResult(String stream, TimeRange timeRange, long limit) {
+    public Map<String, Long> getTermsResult(String stream, TimeRange timeRange, long limit) {
         ImmutableList.Builder<AggregationSeries> seriesBuilder = ImmutableList.builder();
         seriesBuilder.add(AggregationSeries.builder().id("aggregation_id").function(AggregationFunction.COUNT).build());
-        String query = this.configuration.searchQuery();
         AggregationEventProcessorConfig config = AggregationEventProcessorConfig.Builder.create()
                 .groupBy(new ArrayList<>(this.getFields()))
-                .query(query)
+                .query(this.configuration.searchQuery())
                 .streams(ImmutableSet.of(stream))
                 .executeEveryMs(this.configuration.executeEveryMs())
                 .searchWithinMs(this.configuration.searchWithinMs())
@@ -246,16 +240,16 @@ public class AggregationField implements Check {
         AggregationSearch search = this.aggregationSearchFactory.create(config, parameters, owner, this.eventDefinition);
         try {
             AggregationResult result = search.doSearch();
-            return convertResult(query, result);
+            return convertResult(result);
         } catch (EventProcessorException e) {
             e.printStackTrace();
         }
 
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
-        return TermsResult.create(0, terms.build(), 0, 0, 0, query); // TODO improve error case?
+        return terms.build(); // TODO improve error case?
     }
 
-    private TermsResult convertResult(String query, AggregationResult result) {
+    private Map<String, Long> convertResult(AggregationResult result) {
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
         for (AggregationKeyResult keyResult : result.keyResults()) {
             String key = buildTermKey(keyResult.key());
@@ -265,8 +259,7 @@ public class AggregationField implements Check {
             }
         }
 
-        long total = result.totalAggregatedMessages();
-        return TermsResult.create(0, terms.build(), 0, 0, total, query);
+        return terms.build();
     }
 
     private String buildTermKey(Collection<String> keys) {
