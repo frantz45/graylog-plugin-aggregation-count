@@ -67,7 +67,7 @@ class GraylogRestApi:
             time.sleep(.1)
         return GraylogInputs()
 
-    def create_aggregation_count(self, threshold, distinct_fields=None, period=5):
+    def create_aggregation_count(self, threshold, group_by_fields=None, distinct_fields=None, period=5):
         """
         :param title:
         :param threshold:
@@ -75,6 +75,8 @@ class GraylogRestApi:
         :param period: in seconds
         :return:
         """
+        if group_by_fields is None:
+            group_by_fields = []
         if distinct_fields is None:
             distinct_fields = []
         event_definition = {
@@ -83,7 +85,7 @@ class GraylogRestApi:
                 'comment': '',
                 'distinction_fields': distinct_fields,
                 'execute_every_ms': period*1000,
-                'grouping_fields': [],
+                'grouping_fields': group_by_fields,
                 'search_query': '*',
                 'search_within_ms': period*1000,
                 'stream': STREAM_ALL_MESSAGES,
