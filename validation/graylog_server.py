@@ -40,7 +40,7 @@ class GraylogServer:
 
     def extract_logs(self, duration):
         try:
-            subprocess.check_output(['docker-compose', 'logs', '--no-color', '--follow', '--tail=0', 'graylog'],
+            subprocess.check_output(['docker-compose', 'logs', '--no-color', '--follow', 'graylog'],
                                     cwd=self._docker_compose_path, timeout=duration, text=True)
         except subprocess.TimeoutExpired as e:
             if e.output is None:

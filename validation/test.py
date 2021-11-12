@@ -31,7 +31,7 @@ class Test(TestCase):
         gelf_inputs.send({'_port': 80})
 
         logs = self._graylog.extract_logs(2*_PERIOD)
-        self.assertNotIn('java.lang.IllegalStateException: Missing required properties: series', logs)
+        self.assertNotIn('java.lang.IllegalStateException', logs)
 
         # TODO should be better as a ContextManager?
         gelf_inputs.close()
