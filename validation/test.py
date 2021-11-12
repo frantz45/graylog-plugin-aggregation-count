@@ -27,34 +27,25 @@ class Test(TestCase):
     def test_send_alert_should_not_raise_exception_when_there_is_a_distinct_field(self):
         # TODO put together?
         self._graylog_rest_api.create_gelf_input()
-        gelf_inputs = GraylogInputs()
+        with GraylogInputs() as gelf_inputs:
+            self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 2), ['port'], period=_PERIOD)
+            gelf_inputs.send({'_port': 80})
 
-        self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 2), ['port'], period=_PERIOD)
-        gelf_inputs.send({'_port': 80})
-
-        logs = self._graylog.extract_logs(2*_PERIOD)
-        self.assertNotIn('java.lang.IllegalStateException', logs)
-
-        # TODO should be better as a ContextManager?
-        gelf_inputs.close()
+            logs = self._graylog.extract_logs(2*_PERIOD)
+            self.assertNotIn('java.lang.IllegalStateException', logs)
 
     def test_send_alerts_should_trigger_alert_when_there_are_distinct_ports(self):
         # TODO put together?
         self._graylog_rest_api.create_gelf_input()
-        gelf_inputs = GraylogInputs()
+        with GraylogInputs() as gelf_inputs:
+            self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 1), ['port'], period=_PERIOD)
+            gelf_inputs.send({'_port': 80})
+            gelf_inputs.send({'_port': 81})
+            time.sleep(_PERIOD)
 
-        self._graylog_rest_api.create_aggregation_count('AAA', ('MORE', 1), ['port'], period=_PERIOD)
-        gelf_inputs.send({'_port': 80})
-        gelf_inputs.send({'_port': 81})
-        time.sleep(_PERIOD)
+            gelf_inputs.send({'short_message': 'pop'})
+            time.sleep(2*_PERIOD)
+            response = self._graylog_rest_api.post('events/search', {})
+            body = response.json()
 
-        gelf_inputs.send({'short_message': 'pop'})
-        time.sleep(2*_PERIOD)
-        response = self._graylog_rest_api.post('events/search', {})
-        body = response.json()
-        print(response.json())
-
-        self.assertEqual(1, body['total_events'])
-
-        # TODO should be better as a ContextManager?
-        gelf_inputs.close()
+            self.assertEqual(1, body['total_events'])
