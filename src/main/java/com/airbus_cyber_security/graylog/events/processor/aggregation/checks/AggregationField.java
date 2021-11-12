@@ -258,8 +258,8 @@ public class AggregationField implements Check {
     private TermsResult convertResult(String query, AggregationResult result) {
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
         for (AggregationKeyResult keyResult : result.keyResults()) {
+            String key = buildTermKey(keyResult.key());
             for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
-                String key = buildTermKey(seriesValue.key());
                 Long value = Double.valueOf(seriesValue.value()).longValue();
                 terms.put(key, value);
             }

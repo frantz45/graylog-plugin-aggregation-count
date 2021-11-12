@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
 
 public class AggregationCountTest {
 
-    private final int threshold = 2;
+    private final int THRESHOLD = 2;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -84,7 +84,7 @@ public class AggregationCountTest {
         return AggregationCountProcessorConfig.builder()
                 .stream("main stream")
                 .thresholdType(ThresholdType.MORE.getDescription())
-                .threshold(threshold)
+                .threshold(THRESHOLD)
                 .searchWithinMs(2 * 60 * 1000)
                 .executeEveryMs(2 * 60 * 1000)
                 .groupingFields(new HashSet<>())
@@ -126,13 +126,12 @@ public class AggregationCountTest {
 
         mockFactorySearch();
 
-        searchTermsThreeAggregateWillReturn(threshold + 1);
+        mockAggregationResult(THRESHOLD + 1);
         when(this.searches.search(anyString(), anyString(), any(TimeRange.class), any(int.class), any(int.class), any(Sorting.class))).thenReturn(buildDummySearchResult());
         Result result = this.subject.runCheck(buildDummyTimeRange());
 
         String resultDescription = "Stream had 3 messages in the last 0 milliseconds with trigger condition more than 2 messages with the same value of the fields ip_src, user. (Executes every: 0 milliseconds)";
         assertEquals(resultDescription, result.getResultDescription());
-        assertEquals("Matching messages ", 3, result.getMessageSummaries().size());
     }
 
     @Test
@@ -143,16 +142,16 @@ public class AggregationCountTest {
         groupingFields.add("ip_src");
         List<String> distinctionFields = new ArrayList<>();
         distinctionFields.add("user");
-        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, threshold, groupingFields, distinctionFields);
+        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, THRESHOLD, groupingFields, distinctionFields);
         this.subject = new AggregationCount(this.searches, this.moreSearch, configuration, this.eventDefinitionDto, this.aggregationSearchFactory);
 
         mockFactorySearch();
-        searchTermsOneAggregateShouldReturn(threshold + 1L);
+        mockAggregationResult(1);
         when(this.searches.search(anyString(), anyString(), any(TimeRange.class), any(int.class), any(int.class), any(Sorting.class))).thenReturn(buildDummySearchResult());
 
         Result result = this.subject.runCheck(buildDummyTimeRange());
 
-        String resultDescription = "Stream had 1 messages in the last 0 milliseconds with trigger condition less than " + threshold + " messages with the same value of the fields " + String.join(", ", configuration.groupingFields())
+        String resultDescription = "Stream had 1 messages in the last 0 milliseconds with trigger condition less than " + THRESHOLD + " messages with the same value of the fields " + String.join(", ", configuration.groupingFields())
                 + ", and with distinct values of the fields " + String.join(", ", configuration.distinctionFields()) + ". (Executes every: 0 milliseconds)";
         assertEquals(resultDescription, result.getResultDescription());
         assertEquals("Matching messages ", 1, result.getMessageSummaries().size());
@@ -165,23 +164,15 @@ public class AggregationCountTest {
         groupingFields.add("user");
         List<String> distinctionFields = new ArrayList<>();
         distinctionFields.add("user");
-        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, threshold, groupingFields, distinctionFields);
+        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, THRESHOLD, groupingFields, distinctionFields);
         this.subject = new AggregationCount(this.searches, this.moreSearch, configuration, this.eventDefinitionDto, this.aggregationSearchFactory);
 
         mockFactorySearch();
-        searchTermsOneAggregateShouldReturn(threshold - 1L);
+        mockAggregationResult(1);
 
         Result result = this.subject.runCheck(buildDummyTimeRange());
         assertEquals("", result.getResultDescription());
         assertEquals("Matching messages ", 0, result.getMessageSummaries().size());
-
-
-// TODO
-//        AggregationSearch aggregationSearch = mock(AggregationSearch.class);
-//        when(this.aggregationSearchFactory.create(any(AggregationEventProcessorConfig.class),
-//                any(AggregationEventProcessorParameters.class ),
-//                anyString(),
-//                any(EventDefinition.class))).thenReturn(aggregationSearch);
     }
 
     @Test
@@ -190,11 +181,11 @@ public class AggregationCountTest {
         List<String> groupingFields = new ArrayList<>();
         groupingFields.add("user");
         List<String> distinctionFields = new ArrayList<>();
-        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, threshold, groupingFields, distinctionFields);
+        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, THRESHOLD, groupingFields, distinctionFields);
         this.subject = new AggregationCount(this.searches, this.moreSearch, configuration, this.eventDefinitionDto, this.aggregationSearchFactory);
 
         mockFactorySearch();
-        searchTermsThreeAggregateWillReturn(threshold + 1);
+        mockAggregationResult(THRESHOLD + 1);
 
         Result result = this.subject.runCheck(buildDummyTimeRange());
         assertEquals("", result.getResultDescription());
@@ -208,19 +199,18 @@ public class AggregationCountTest {
         groupingFields.add("user");
         groupingFields.add("ip_src");
         List<String> distinctionFields = new ArrayList<>();
-        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, threshold, groupingFields, distinctionFields);
+        AggregationCountProcessorConfig configuration = getAggregationCountProcessorConfigWithFields(type, THRESHOLD, groupingFields, distinctionFields);
         this.subject = new AggregationCount(this.searches, this.moreSearch, configuration, this.eventDefinitionDto, this.aggregationSearchFactory);
 
         mockFactorySearch();
-        searchTermsThreeAggregateWillReturn(threshold + 1);
+        mockAggregationResult(THRESHOLD + 1);
         when(this.searches.search(anyString(), anyString(), any(TimeRange.class), any(int.class), any(int.class), any(Sorting.class))).thenReturn(buildDummySearchResult());
 
         Result result = this.subject.runCheck(buildDummyTimeRange());
-        String resultDescription = "Stream had " + (threshold + 1) + " messages in the last 0 milliseconds with trigger condition more than "
+        String resultDescription = "Stream had " + (THRESHOLD + 1) + " messages in the last 0 milliseconds with trigger condition more than "
                 + configuration.threshold() + " messages with the same value of the fields " + String.join(", ", configuration.groupingFields())
                 + ". (Executes every: 0 milliseconds)";
         assertEquals(resultDescription, result.getResultDescription());
-        assertEquals("Matching messages ", 3, result.getMessageSummaries().size());
     }
 
     @Test
@@ -259,34 +249,6 @@ public class AggregationCountTest {
                 .build();
     }
 
-    private void searchTermsOneAggregateShouldReturn(long count) throws Exception {
-        mockAggregationResult(1);
-//        final TermsResult termsResult = mock(TermsResult.class);
-//        Map<String, Long> terms = new HashMap<String, Long>();
-//        terms.put("user - ip1", count);
-//
-//        when(termsResult.terms()).thenReturn(terms);
-
-        // TODO Make test
-        //when(moreSearch.terms(anyString(), anyList(), any(int.class), anyString(), anyString(), any(TimeRange.class), any(Sorting.Direction.class))).thenReturn(termsResult);
-
-    }
-
-    private void searchTermsThreeAggregateWillReturn(int count) throws Exception {
-        mockAggregationResult(count);
-
-//        final TermsResult termsResult = mock(TermsResult.class);
-//        Map<String, Long> terms = new HashMap<String, Long>();
-//        terms.put("user - ip1", count);
-//        terms.put("user - ip2", count);
-//        terms.put("user - ip3", count);
-//
-//        when(termsResult.terms()).thenReturn(terms);
-
-        // TODO Make test
-        //when(moreSearch.terms(anyString(), anyList(), any(int.class), anyString(), anyString(), any(TimeRange.class), any(Sorting.Direction.class))).thenReturn(termsResult);
-    }
-
     private AggregationSeriesValue mockSeriesValue(int count, String... keys) {
         AggregationSeriesValue aggregationSeriesValue = mock(AggregationSeriesValue.class);
         when(aggregationSeriesValue.key()).thenReturn(ImmutableList.copyOf(keys));
@@ -303,15 +265,15 @@ public class AggregationCountTest {
 
     private void mockAggregationResult(int count) throws Exception {
         ImmutableList.Builder<AggregationSeriesValue> seriesValues = ImmutableList.builder();
-        for (int i = 1; i <= count; i++) {
-            AggregationSeriesValue aggregationSeriesValue = mockSeriesValue(count, "user", "ip" + i);
-            seriesValues.add(aggregationSeriesValue);
-        }
-
         AggregationKeyResult aggregationKeyResult = mock(AggregationKeyResult.class);
-        when(aggregationKeyResult.key()).thenReturn(ImmutableList.of("user", "ip1"));
-        when(aggregationKeyResult.seriesValues()).thenReturn(seriesValues.build());
+        AggregationSeriesValue aggregationSeriesValue = mockSeriesValue(count, "user", "ip");
+        seriesValues.add(aggregationSeriesValue);
 
+        when(aggregationKeyResult.seriesValues()).thenReturn(seriesValues.build());
+        when(aggregationKeyResult.key())
+                .thenReturn(ImmutableList.of("user", "ip1"))
+                .thenReturn(ImmutableList.of("user", "ip2"))
+                .thenReturn(ImmutableList.of("user", "ip3"));
         AggregationResult aggregationResult = mock(AggregationResult.class);
         when(aggregationResult.totalAggregatedMessages()).thenReturn(3L * count);
         when(aggregationResult.keyResults()).thenReturn(ImmutableList.of(aggregationKeyResult));
