@@ -9,8 +9,6 @@ class GraylogServer:
 
     def start(self):
         subprocess.run(['docker-compose', 'up', '--detach'], cwd=self._docker_compose_path)
-        print('Waiting for graylog to start...')
-        self.wait_until_log('Graylog server up and running.', 60)
 
     def _look_for_log(self, expected_message, stream):
         while True:

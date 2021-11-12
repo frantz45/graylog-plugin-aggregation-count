@@ -230,7 +230,7 @@ public class AggregationField implements Check {
         seriesBuilder.add(AggregationSeries.builder().id("aggregation_id").function(AggregationFunction.COUNT).build());
         String query = this.configuration.searchQuery();
         AggregationEventProcessorConfig config = AggregationEventProcessorConfig.Builder.create()
-                .groupBy(new ArrayList<>(this.configuration.groupingFields()))
+                .groupBy(new ArrayList<>(this.getFields()))
                 .query(query)
                 .streams(ImmutableSet.of(stream))
                 .executeEveryMs(this.configuration.executeEveryMs())
