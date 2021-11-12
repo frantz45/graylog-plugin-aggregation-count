@@ -1,6 +1,7 @@
 import requests
-from urllib import parse
 import time
+from urllib import parse
+from requests.exceptions import ConnectionError
 
 STREAM_ALL_MESSAGES = "000000000000000000000001"
 _AUTH = ('admin', 'admin')
