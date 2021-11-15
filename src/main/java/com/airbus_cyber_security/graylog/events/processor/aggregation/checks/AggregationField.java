@@ -196,7 +196,6 @@ public class AggregationField implements Check {
 
         /* Get the matched term */
         Map<String, Long> result = getTermsResult(this.configuration.stream(), range, this.searchLimit);
-        //this.searches.terms(firstField, nextFields, this.searchLimit, this.configuration.searchQuery(), filter, range, Sorting.Direction.DESC);
 
         Map<String, List<String>> matchedTerms = new HashMap<>();
         long ruleCount = getMatchedTerm(matchedTerms, result);

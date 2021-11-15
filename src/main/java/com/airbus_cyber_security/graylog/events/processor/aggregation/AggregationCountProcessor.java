@@ -136,7 +136,7 @@ public class AggregationCountProcessor implements EventProcessor {
             Map<String, Long> result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, (int) limit);
 
             Map<String, List<String>> matchedTerms = new HashMap<>();
-            long ruleCount = aggregationField.getMatchedTerm(matchedTerms, result);
+            aggregationField.getMatchedTerm(matchedTerms, result);
 
             /* Get the list of summary messages */
             List<MessageSummary> summaries = Lists.newArrayListWithCapacity((int) limit);
