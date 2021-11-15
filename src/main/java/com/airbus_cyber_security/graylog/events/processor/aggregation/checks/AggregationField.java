@@ -216,7 +216,25 @@ public class AggregationField implements Check {
             }
         }
 
-        return terms.build();
+        try {
+            return terms.build();
+        } catch (IllegalArgumentException e) {
+            // If this ever happens, then it means it is possible to have two keyResults with the same key
+            // => then, instead of putting the value in terms, should maybe add or replace the value (depends on the exact behavior of graylog)
+            // TODO should check in the graylog server code
+            LOG.info("It seems there are two results with the same key. Listing all results...");
+            for (AggregationKeyResult keyResult : result.keyResults()) {
+                String key = buildTermKey(keyResult.key());
+                LOG.info("key: {} ->", key);
+                for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
+                    Long value = Double.valueOf(seriesValue.value()).longValue();
+                    LOG.info("value: {}", value);
+                    terms.put(key, value);
+                }
+            }
+
+            throw e;
+        }
     }
 
     private String buildTermKey(Collection<String> keys) {
