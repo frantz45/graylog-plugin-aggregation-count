@@ -45,14 +45,14 @@ public class AggregationCount {
         Result.Builder resultBuilder = new Result.Builder(resultDescriptionPattern);
         boolean hasFields = !(configuration.groupingFields().isEmpty() && configuration.distinctionFields().isEmpty());
         if (hasFields) {
-            this.check = new AggregationField(configuration, searches, SEARCH_LIMIT, resultBuilder, aggregationSearchFactory, eventDefinition);
+            this.check = new AggregationField(configuration, searches, resultBuilder, aggregationSearchFactory, eventDefinition);
         } else {
-            this.check = new NoFields(configuration, searches, moreSearch, SEARCH_LIMIT, resultBuilder);
+            this.check = new NoFields(configuration, searches, moreSearch, resultBuilder);
         }
     }
 
     public Result runCheck(TimeRange timerange) {
-        return this.check.run(timerange);
+        return this.check.run(timerange, SEARCH_LIMIT);
     }
 
     private String buildResultDescriptionPattern(AggregationCountProcessorConfig configuration) {
@@ -79,7 +79,7 @@ public class AggregationCount {
         return result;
     }
 
-    public List<MessageSummary> getMessageSummaries(long limit, TimeRange timeRange) throws EventProcessorException {
-        return this.check.getMessageSummaries((int) limit, timeRange);
+    public List<MessageSummary> getMessageSummaries(TimeRange timeRange, int limit) throws EventProcessorException {
+        return this.check.getMessageSummaries(timeRange, limit);
     }
 }

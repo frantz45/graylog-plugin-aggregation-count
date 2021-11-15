@@ -43,14 +43,12 @@ public class NoFields implements Check {
     private final AggregationCountProcessorConfig configuration;
     private final Searches searches;
     private final MoreSearch moreSearch;
-    private final int searchLimit;
     private final Result.Builder resultBuilder;
 
-    public NoFields(AggregationCountProcessorConfig configuration, Searches searches, MoreSearch moreSearch, int searchLimit, Result.Builder resultBuilder) {
+    public NoFields(AggregationCountProcessorConfig configuration, Searches searches, MoreSearch moreSearch, Result.Builder resultBuilder) {
         this.configuration = configuration;
         this.searches = searches;
         this.moreSearch = moreSearch;
-        this.searchLimit = searchLimit;
         this.resultBuilder = resultBuilder;
     }
 
@@ -70,7 +68,7 @@ public class NoFields implements Check {
     }
 
     @Override
-    public Result run(TimeRange range) {
+    public Result run(TimeRange range, int limit) {
         String filter = buildQueryFilter(this.configuration.stream(), this.configuration.searchQuery());
         CountResult result = this.searches.count("*", range, filter);
         long count = result.count();
@@ -90,7 +88,7 @@ public class NoFields implements Check {
             return this.resultBuilder.buildEmpty();
         }
         List<MessageSummary> summaries = Lists.newArrayList();
-        SearchResult backlogResult = this.searches.search("*", filter, range, this.searchLimit, 0, new Sorting("timestamp", Sorting.Direction.DESC));
+        SearchResult backlogResult = this.searches.search("*", filter, range, limit, 0, new Sorting("timestamp", Sorting.Direction.DESC));
 
         for (ResultMessage resultMessage: backlogResult.getResults()) {
             Message msg = resultMessage.getMessage();
@@ -100,8 +98,8 @@ public class NoFields implements Check {
     }
 
     @Override
-    public List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) throws EventProcessorException {
-        final List<MessageSummary> summaries = Lists.newArrayListWithCapacity((int) limit);
+    public List<MessageSummary> getMessageSummaries(TimeRange timeRange, int limit) throws EventProcessorException {
+        final List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
         final AtomicLong msgCount = new AtomicLong(0L);
         final MoreSearch.ScrollCallback callback = (messages, continueScrolling) -> {
             for (final ResultMessage resultMessage : messages) {

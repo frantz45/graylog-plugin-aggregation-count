@@ -112,7 +112,7 @@ public class AggregationCountProcessor implements EventProcessor {
         }
 
         final TimeRange timeRange = AbsoluteRange.create(event.getTimerangeStart(), event.getTimerangeEnd());
-        List<MessageSummary> summaries = this.aggregationCount.getMessageSummaries(limit, timeRange);
+        List<MessageSummary> summaries = this.aggregationCount.getMessageSummaries(timeRange, (int) limit);
         messageConsumer.accept(summaries);
     }
 }

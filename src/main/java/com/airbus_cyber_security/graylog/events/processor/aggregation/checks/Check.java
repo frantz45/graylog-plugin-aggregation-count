@@ -24,7 +24,7 @@ import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
 import java.util.List;
 
 public interface Check {
-    Result run(TimeRange range);
+    Result run(TimeRange range, int limit);
 
-    List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) throws EventProcessorException;
+    List<MessageSummary> getMessageSummaries(TimeRange timeRange, int limit) throws EventProcessorException;
 }

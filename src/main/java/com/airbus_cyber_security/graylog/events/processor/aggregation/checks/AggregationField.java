@@ -42,7 +42,6 @@ public class AggregationField implements Check {
 
     private final AggregationCountProcessorConfig configuration;
     private final Searches searches;
-    private final int searchLimit;
     private final Result.Builder resultBuilder;
 
     private String thresholdType;
@@ -53,10 +52,9 @@ public class AggregationField implements Check {
     private final AggregationSearch.Factory aggregationSearchFactory;
     private final EventDefinition eventDefinition;
 
-    public AggregationField(AggregationCountProcessorConfig configuration, Searches searches, int searchLimit, Result.Builder resultBuilder, AggregationSearch.Factory aggregationSearchFactory, EventDefinition eventDefinition) {
+    public AggregationField(AggregationCountProcessorConfig configuration, Searches searches, Result.Builder resultBuilder, AggregationSearch.Factory aggregationSearchFactory, EventDefinition eventDefinition) {
         this.configuration = configuration;
         this.searches = searches;
-        this.searchLimit = searchLimit;
         this.resultBuilder = resultBuilder;
         this.setThresholds(configuration);
         this.aggregationSearchFactory = aggregationSearchFactory;
@@ -136,11 +134,11 @@ public class AggregationField implements Check {
         return (this.configuration.searchQuery() + " AND " + firstField + ": \"" + matchedFieldValue + "\"");
     }
 
-    private void addSearchMessages(List<MessageSummary> summaries, String searchQuery, String filter, TimeRange range) {
+    private void addSearchMessages(List<MessageSummary> summaries, String searchQuery, String filter, TimeRange range, int searchLimit) {
         final SearchResult backlogResult = this.searches.search(searchQuery, filter,
-                range, this.searchLimit, 0, new Sorting(Message.FIELD_TIMESTAMP, Sorting.Direction.DESC));
+                range, searchLimit, 0, new Sorting(Message.FIELD_TIMESTAMP, Sorting.Direction.DESC));
         for (ResultMessage resultMessage : backlogResult.getResults()) {
-            if (summaries.size() >= this.searchLimit) {
+            if (summaries.size() >= searchLimit) {
                 break;
             }
             summaries.add(new MessageSummary(resultMessage.getIndex(), resultMessage.getMessage()));
@@ -148,7 +146,7 @@ public class AggregationField implements Check {
     }
 
     public boolean getListMessageSummary(List<MessageSummary> summaries, Map<String, List<String>> matchedTerms,
-                                         String firstField, List<String> nextFields, TimeRange range, String filter) {
+                                         String firstField, List<String> nextFields, TimeRange range, int limit, String filter) {
         boolean ruleTriggered = false;
         Map<String, Long> frequenciesFields = new HashMap<>();
         for (Map.Entry<String, List<String>> matchedTerm : matchedTerms.entrySet()) {
@@ -170,7 +168,7 @@ public class AggregationField implements Check {
 
                     LOG.debug("Search: " + searchQuery);
 
-                    addSearchMessages(summaries, searchQuery, filter, range);
+                    addSearchMessages(summaries, searchQuery, filter, range, limit);
 
                     LOG.debug(summaries.size() + " Messages in CheckResult");
                 }
@@ -189,20 +187,20 @@ public class AggregationField implements Check {
      * Result Description and list of messages that satisfy the conditions
      */
     @Override
-    public Result run(TimeRange range) {
+    public Result run(TimeRange range, int limit) {
         List<String> nextFields = new ArrayList<>(getFields());
         String firstField = nextFields.remove(0);
 
         /* Get the matched term */
-        Map<String, Long> result = getTermsResult(this.configuration.stream(), range, this.searchLimit);
+        Map<String, Long> result = getTermsResult(this.configuration.stream(), range, limit);
 
         Map<String, List<String>> matchedTerms = new HashMap<>();
         long ruleCount = getMatchedTerm(matchedTerms, result);
 
         /* Get the list of summary messages */
-        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(this.searchLimit);
+        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
         final String filter = "streams:" + this.configuration.stream();
-        boolean ruleTriggered = getListMessageSummary(summaries, matchedTerms, firstField, nextFields, range, filter);
+        boolean ruleTriggered = getListMessageSummary(summaries, matchedTerms, firstField, nextFields, range, limit, filter);
 
         /* If rule triggered return the check result */
         if (ruleTriggered) {
@@ -218,7 +216,7 @@ public class AggregationField implements Check {
         return this.resultBuilder.buildEmpty();
     }
 
-    public Map<String, Long> getTermsResult(String stream, TimeRange timeRange, long limit) {
+    public Map<String, Long> getTermsResult(String stream, TimeRange timeRange, int limit) {
         ImmutableList.Builder<AggregationSeries> seriesBuilder = ImmutableList.builder();
         seriesBuilder.add(AggregationSeries.builder().id("aggregation_id").function(AggregationFunction.COUNT).build());
         AggregationEventProcessorConfig config = AggregationEventProcessorConfig.Builder.create()
@@ -272,22 +270,20 @@ public class AggregationField implements Check {
     }
 
     @Override
-    public List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) {
-        AggregationField aggregationField = new AggregationField(configuration, this.searches, limit, null, this.aggregationSearchFactory, this.eventDefinition);
-
-        List<String> nextFields = new ArrayList<>(aggregationField.getFields());
+    public List<MessageSummary> getMessageSummaries(TimeRange timeRange, int limit) {
+        List<String> nextFields = new ArrayList<>(this.getFields());
         String firstField = nextFields.remove(0);
 
         /* Get the matched term */
-        Map<String, Long> result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, limit);
+        Map<String, Long> result = this.getTermsResult(this.configuration.stream(), timeRange, limit);
 
         Map<String, List<String>> matchedTerms = new HashMap<>();
-        aggregationField.getMatchedTerm(matchedTerms, result);
+        this.getMatchedTerm(matchedTerms, result);
 
         /* Get the list of summary messages */
         List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
         final String filter = "streams:" + this.configuration.stream();
-        aggregationField.getListMessageSummary(summaries, matchedTerms, firstField, nextFields, timeRange, filter);
+        this.getListMessageSummary(summaries, matchedTerms, firstField, nextFields, timeRange, limit, filter);
         return summaries;
     }
 }
