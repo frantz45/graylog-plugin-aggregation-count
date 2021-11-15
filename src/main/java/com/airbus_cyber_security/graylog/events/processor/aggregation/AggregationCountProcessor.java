@@ -127,42 +127,52 @@ public class AggregationCountProcessor implements EventProcessor {
         final TimeRange timeRange = AbsoluteRange.create(event.getTimerangeStart(), event.getTimerangeEnd());
         boolean hasFields = !(configuration.groupingFields().isEmpty() && configuration.distinctionFields().isEmpty());
         if (hasFields) {
-            AggregationField aggregationField = new AggregationField(configuration, this.searches, (int) limit, null, this.aggregationSearchFactory, this.eventDefinition);
-
-            List<String> nextFields = new ArrayList<>(aggregationField.getFields());
-            String firstField = nextFields.remove(0);
-
-            /* Get the matched term */
-            Map<String, Long> result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, (int) limit);
-
-            Map<String, List<String>> matchedTerms = new HashMap<>();
-            aggregationField.getMatchedTerm(matchedTerms, result);
-
-            /* Get the list of summary messages */
-            List<MessageSummary> summaries = Lists.newArrayListWithCapacity((int) limit);
-            final String filter = "streams:" + this.configuration.stream();
-            aggregationField.getListMessageSummary(summaries, matchedTerms, firstField, nextFields, timeRange, filter);
+            List<MessageSummary> summaries = getMessageSummaries((int) limit, timeRange);
 
             messageConsumer.accept(summaries);
         } else {
-            final AtomicLong msgCount = new AtomicLong(0L);
-            final MoreSearch.ScrollCallback callback = (messages, continueScrolling) -> {
+            final List<MessageSummary> summaries = getMessageSummariesWhenThereIsNoFields(limit, timeRange);
 
-                final List<MessageSummary> summaries = Lists.newArrayList();
-                for (final ResultMessage resultMessage : messages) {
-                    if (msgCount.incrementAndGet() > limit) {
-                        continueScrolling.set(false);
-                        break;
-                    }
-                    final Message msg = resultMessage.getMessage();
-                    summaries.add(new MessageSummary(resultMessage.getIndex(), msg));
-                }
-                messageConsumer.accept(summaries);
-            };
-            Set<String> streams = new HashSet<>();
-            streams.add(configuration.stream());
-            Set<Parameter> parameters = new HashSet<>();
-            moreSearch.scrollQuery(configuration.searchQuery(), streams, parameters, timeRange, Math.min(500, Ints.saturatedCast(limit)), callback);
+            messageConsumer.accept(summaries);
         }
+    }
+
+    private List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) {
+        AggregationField aggregationField = new AggregationField(configuration, this.searches, limit, null, this.aggregationSearchFactory, this.eventDefinition);
+
+        List<String> nextFields = new ArrayList<>(aggregationField.getFields());
+        String firstField = nextFields.remove(0);
+
+        /* Get the matched term */
+        Map<String, Long> result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, limit);
+
+        Map<String, List<String>> matchedTerms = new HashMap<>();
+        aggregationField.getMatchedTerm(matchedTerms, result);
+
+        /* Get the list of summary messages */
+        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
+        final String filter = "streams:" + this.configuration.stream();
+        aggregationField.getListMessageSummary(summaries, matchedTerms, firstField, nextFields, timeRange, filter);
+        return summaries;
+    }
+
+    private List<MessageSummary> getMessageSummariesWhenThereIsNoFields(long limit, TimeRange timeRange) throws EventProcessorException {
+        final List<MessageSummary> summaries = Lists.newArrayListWithCapacity((int) limit);
+        final AtomicLong msgCount = new AtomicLong(0L);
+        final MoreSearch.ScrollCallback callback = (messages, continueScrolling) -> {
+            for (final ResultMessage resultMessage : messages) {
+                if (msgCount.incrementAndGet() > limit) {
+                    continueScrolling.set(false);
+                    break;
+                }
+                final Message msg = resultMessage.getMessage();
+                summaries.add(new MessageSummary(resultMessage.getIndex(), msg));
+            }
+        };
+        Set<String> streams = new HashSet<>();
+        streams.add(configuration.stream());
+        Set<Parameter> parameters = new HashSet<>();
+        moreSearch.scrollQuery(configuration.searchQuery(), streams, parameters, timeRange, Math.min(500, Ints.saturatedCast(limit)), callback);
+        return summaries;
     }
 }
