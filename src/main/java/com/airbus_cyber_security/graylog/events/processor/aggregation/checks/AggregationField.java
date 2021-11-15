@@ -203,17 +203,17 @@ public class AggregationField implements Check {
         boolean ruleTriggered = getListMessageSummary(summaries, matchedTerms, firstField, nextFields, range, limit, filter);
 
         /* If rule triggered return the check result */
-        if (ruleTriggered) {
-            long messageNumber;
-            if (!configuration.distinctionFields().isEmpty()) {
-                messageNumber = summaries.size();
-            } else {
-                messageNumber = ruleCount;
-            }
-            return this.resultBuilder.build(messageNumber, summaries);
+        if (!ruleTriggered) {
+            return this.resultBuilder.buildEmpty();
         }
 
-        return this.resultBuilder.buildEmpty();
+        long messageNumber;
+        if (!configuration.distinctionFields().isEmpty()) {
+            messageNumber = summaries.size();
+        } else {
+            messageNumber = ruleCount;
+        }
+        return this.resultBuilder.build(messageNumber, summaries);
     }
 
     public Map<String, Long> getTermsResult(String stream, TimeRange timeRange, int limit) {
