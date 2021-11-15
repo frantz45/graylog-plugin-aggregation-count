@@ -177,45 +177,6 @@ public class AggregationField implements Check {
         return ruleTriggered;
     }
 
-    /**
-     * Check if the condition is triggered
-     * <p>
-     * This condition is triggered when the number of messages with the same value of some message fields
-     * and with distinct values of other messages fields is higher/lower than a defined threshold in a given time range.
-     *
-     * @return AggregationCountCheckResult
-     * Result Description and list of messages that satisfy the conditions
-     */
-    @Override
-    public Result run(TimeRange range, int limit) {
-        List<String> nextFields = new ArrayList<>(getFields());
-        String firstField = nextFields.remove(0);
-
-        /* Get the matched term */
-        Map<String, Long> result = getTermsResult(this.configuration.stream(), range, limit);
-
-        Map<String, List<String>> matchedTerms = new HashMap<>();
-        long ruleCount = getMatchedTerm(matchedTerms, result);
-
-        /* Get the list of summary messages */
-        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
-        final String filter = "streams:" + this.configuration.stream();
-        boolean ruleTriggered = getListMessageSummary(summaries, matchedTerms, firstField, nextFields, range, limit, filter);
-
-        /* If rule triggered return the check result */
-        if (!ruleTriggered) {
-            return this.resultBuilder.buildEmpty();
-        }
-
-        long messageNumber;
-        if (!configuration.distinctionFields().isEmpty()) {
-            messageNumber = summaries.size();
-        } else {
-            messageNumber = ruleCount;
-        }
-        return this.resultBuilder.build(messageNumber, summaries);
-    }
-
     public Map<String, Long> getTermsResult(String stream, TimeRange timeRange, int limit) {
         ImmutableList.Builder<AggregationSeries> seriesBuilder = ImmutableList.builder();
         seriesBuilder.add(AggregationSeries.builder().id("aggregation_id").function(AggregationFunction.COUNT).build());
@@ -267,6 +228,45 @@ public class AggregationField implements Check {
             builder.append(key);
         });
         return builder.toString();
+    }
+
+    /**
+     * Check if the condition is triggered
+     * <p>
+     * This condition is triggered when the number of messages with the same value of some message fields
+     * and with distinct values of other messages fields is higher/lower than a defined threshold in a given time range.
+     *
+     * @return AggregationCountCheckResult
+     * Result Description and list of messages that satisfy the conditions
+     */
+    @Override
+    public Result run(TimeRange range, int limit) {
+        List<String> nextFields = new ArrayList<>(getFields());
+        String firstField = nextFields.remove(0);
+
+        /* Get the matched term */
+        Map<String, Long> result = getTermsResult(this.configuration.stream(), range, limit);
+
+        Map<String, List<String>> matchedTerms = new HashMap<>();
+        long ruleCount = getMatchedTerm(matchedTerms, result);
+
+        /* Get the list of summary messages */
+        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
+        final String filter = "streams:" + this.configuration.stream();
+        boolean ruleTriggered = getListMessageSummary(summaries, matchedTerms, firstField, nextFields, range, limit, filter);
+
+        /* If rule triggered return the check result */
+        if (!ruleTriggered) {
+            return this.resultBuilder.buildEmpty();
+        }
+
+        long messageNumber;
+        if (!configuration.distinctionFields().isEmpty()) {
+            messageNumber = summaries.size();
+        } else {
+            messageNumber = ruleCount;
+        }
+        return this.resultBuilder.build(messageNumber, summaries);
     }
 
     @Override
