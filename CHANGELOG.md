@@ -2,11 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/4.0.0...master) (2021-09-30)
+### Bug Fixes
+* raised java.lang.IllegalStateException when evaluating an event definition with no grouping fields but a distinct field
+* did not trigger for event definitions with distinct fields
+* raise java.lang.IllegalArgumentException when triggering an event definition with several grouping fields
+
 ## [4.0.0](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/2.2.0...4.0.0) (2021-09-30)
 ### Features
 * Add compatibility with Graylog 4.1
 * Changed plugin license to SSPL version 1
-
 
 ## [2.2.0](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/2.1.2...2.2.0) (2020-10-23)
 ### Features
