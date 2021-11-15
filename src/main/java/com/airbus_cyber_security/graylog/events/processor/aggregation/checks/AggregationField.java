@@ -61,6 +61,12 @@ public class AggregationField implements Check {
         this.eventDefinition = eventDefinition;
     }
 
+    // TODO this is really complicated, this is related to the way the result is computed
+    // could be simplified, but I am not doing it right now, since it may be risky
+    // 1) first put grouping fields and distinct fields together to compute the count
+    // 2) then, if there are distinct fields, for each grouping field combination, compute the cardinality of distinct fields
+    //    should at the same time collect the combinations of values (grouping fields and distinct field), this is needed to get the message summaries
+    // 3) then iterate over the grouping fields combinations and compute the message summaries
     private void setThresholds(AggregationCountProcessorConfig configuration) {
         if (!configuration.distinctionFields().isEmpty()) {
             this.thresholdType = ThresholdType.MORE.getDescription();
@@ -91,9 +97,8 @@ public class AggregationField implements Check {
                 ((thresholdType == ThresholdType.LESS) && (count < threshold)));
     }
 
-    public long getMatchedTerm(Map<String, List<String>> matchedTerms, Map<String, Long> results) {
-        long ruleCount = 0;
-        boolean isFirstTriggered = true;
+    public Map<String, List<String>> getMatchedTerm(Map<String, Long> results) {
+        Map<String, List<String>> matchedTerms = new HashMap<>();
         for (Map.Entry<String, Long> term : results.entrySet()) {
 
             String matchedFieldValue = term.getKey();
@@ -116,14 +121,9 @@ public class AggregationField implements Check {
                 } else {
                     matchedTerms.put(valuesAgregates, Lists.newArrayList(matchedFieldValue));
                 }
-
-                if (isFirstTriggered) {
-                    ruleCount = count;
-                    isFirstTriggered = false;
-                }
             }
         }
-        return ruleCount;
+        return matchedTerms;
     }
 
     private String buildSearchQuery(String firstField, List<String> nextFields, String matchedFieldValue) {
@@ -247,8 +247,7 @@ public class AggregationField implements Check {
         /* Get the matched term */
         Map<String, Long> result = getTermsResult(this.configuration.stream(), range, limit);
 
-        Map<String, List<String>> matchedTerms = new HashMap<>();
-        long ruleCount = getMatchedTerm(matchedTerms, result);
+        Map<String, List<String>> matchedTerms = getMatchedTerm(result);
 
         /* Get the list of summary messages */
         List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
@@ -260,13 +259,7 @@ public class AggregationField implements Check {
             return this.resultBuilder.buildEmpty();
         }
 
-        long messageNumber;
-        if (!configuration.distinctionFields().isEmpty()) {
-            messageNumber = summaries.size();
-        } else {
-            messageNumber = ruleCount;
-        }
-        return this.resultBuilder.build(messageNumber, summaries);
+        return this.resultBuilder.build(summaries.size(), summaries);
     }
 
     @Override
@@ -277,8 +270,7 @@ public class AggregationField implements Check {
         /* Get the matched term */
         Map<String, Long> result = this.getTermsResult(this.configuration.stream(), timeRange, limit);
 
-        Map<String, List<String>> matchedTerms = new HashMap<>();
-        this.getMatchedTerm(matchedTerms, result);
+        Map<String, List<String>> matchedTerms = this.getMatchedTerm(result);
 
         /* Get the list of summary messages */
         List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
