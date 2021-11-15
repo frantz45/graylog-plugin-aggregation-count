@@ -32,7 +32,6 @@ import org.graylog2.indexer.searches.Sorting;
 import org.graylog2.plugin.Message;
 import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
-import org.graylog2.rest.models.search.responses.TermsResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -272,4 +271,23 @@ public class AggregationField implements Check {
         return builder.toString();
     }
 
+    @Override
+    public List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) {
+        AggregationField aggregationField = new AggregationField(configuration, this.searches, limit, null, this.aggregationSearchFactory, this.eventDefinition);
+
+        List<String> nextFields = new ArrayList<>(aggregationField.getFields());
+        String firstField = nextFields.remove(0);
+
+        /* Get the matched term */
+        Map<String, Long> result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, limit);
+
+        Map<String, List<String>> matchedTerms = new HashMap<>();
+        aggregationField.getMatchedTerm(matchedTerms, result);
+
+        /* Get the list of summary messages */
+        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
+        final String filter = "streams:" + this.configuration.stream();
+        aggregationField.getListMessageSummary(summaries, matchedTerms, firstField, nextFields, timeRange, filter);
+        return summaries;
+    }
 }

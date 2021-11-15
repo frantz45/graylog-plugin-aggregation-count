@@ -17,8 +17,14 @@
 
 package com.airbus_cyber_security.graylog.events.processor.aggregation.checks;
 
+import org.graylog.events.processor.EventProcessorException;
+import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
+
+import java.util.List;
 
 public interface Check {
     Result run(TimeRange range);
+
+    List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) throws EventProcessorException;
 }

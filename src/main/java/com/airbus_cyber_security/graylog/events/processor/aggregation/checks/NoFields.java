@@ -20,6 +20,10 @@ package com.airbus_cyber_security.graylog.events.processor.aggregation.checks;
 import com.airbus_cyber_security.graylog.events.processor.aggregation.AggregationCountProcessorConfig;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
+import org.graylog.events.processor.EventProcessorException;
+import org.graylog.events.search.MoreSearch;
+import org.graylog.plugins.views.search.Parameter;
 import org.graylog2.indexer.results.CountResult;
 import org.graylog2.indexer.results.ResultMessage;
 import org.graylog2.indexer.results.SearchResult;
@@ -29,18 +33,23 @@ import org.graylog2.plugin.Message;
 import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class NoFields implements Check {
 
     private final AggregationCountProcessorConfig configuration;
     private final Searches searches;
+    private final MoreSearch moreSearch;
     private final int searchLimit;
     private final Result.Builder resultBuilder;
 
-    public NoFields(AggregationCountProcessorConfig configuration, Searches searches, int searchLimit, Result.Builder resultBuilder) {
+    public NoFields(AggregationCountProcessorConfig configuration, Searches searches, MoreSearch moreSearch, int searchLimit, Result.Builder resultBuilder) {
         this.configuration = configuration;
         this.searches = searches;
+        this.moreSearch = moreSearch;
         this.searchLimit = searchLimit;
         this.resultBuilder = resultBuilder;
     }
@@ -88,5 +97,26 @@ public class NoFields implements Check {
             summaries.add(new MessageSummary(resultMessage.getIndex(), msg));
         }
         return this.resultBuilder.build(count, summaries);
+    }
+
+    @Override
+    public List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) throws EventProcessorException {
+        final List<MessageSummary> summaries = Lists.newArrayListWithCapacity((int) limit);
+        final AtomicLong msgCount = new AtomicLong(0L);
+        final MoreSearch.ScrollCallback callback = (messages, continueScrolling) -> {
+            for (final ResultMessage resultMessage : messages) {
+                if (msgCount.incrementAndGet() > limit) {
+                    continueScrolling.set(false);
+                    break;
+                }
+                final Message msg = resultMessage.getMessage();
+                summaries.add(new MessageSummary(resultMessage.getIndex(), msg));
+            }
+        };
+        Set<String> streams = new HashSet<>();
+        streams.add(configuration.stream());
+        Set<Parameter> parameters = new HashSet<>();
+        this.moreSearch.scrollQuery(configuration.searchQuery(), streams, parameters, timeRange, Math.min(500, Ints.saturatedCast(limit)), callback);
+        return summaries;
     }
 }

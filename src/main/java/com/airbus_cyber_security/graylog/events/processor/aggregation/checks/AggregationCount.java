@@ -18,13 +18,21 @@
 package com.airbus_cyber_security.graylog.events.processor.aggregation.checks;
 
 import com.airbus_cyber_security.graylog.events.processor.aggregation.AggregationCountProcessorConfig;
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Ints;
 import org.graylog.events.processor.EventDefinition;
+import org.graylog.events.processor.EventProcessorException;
 import org.graylog.events.processor.aggregation.AggregationSearch;
 import org.graylog.events.search.MoreSearch;
+import org.graylog.plugins.views.search.Parameter;
+import org.graylog2.indexer.results.ResultMessage;
 import org.graylog2.indexer.searches.Searches;
+import org.graylog2.plugin.Message;
+import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
 
-import java.util.Locale;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class AggregationCount {
     private static final int SEARCH_LIMIT = 500;
@@ -39,7 +47,7 @@ public class AggregationCount {
         if (hasFields) {
             this.check = new AggregationField(configuration, searches, SEARCH_LIMIT, resultBuilder, aggregationSearchFactory, eventDefinition);
         } else {
-            this.check = new NoFields(configuration, searches, SEARCH_LIMIT, resultBuilder);
+            this.check = new NoFields(configuration, searches, moreSearch, SEARCH_LIMIT, resultBuilder);
         }
     }
 
@@ -69,5 +77,9 @@ public class AggregationCount {
         result += ". (Executes every: " + configuration.executeEveryMs() + " milliseconds)";
 
         return result;
+    }
+
+    public List<MessageSummary> getMessageSummaries(long limit, TimeRange timeRange) throws EventProcessorException {
+        return this.check.getMessageSummaries((int) limit, timeRange);
     }
 }

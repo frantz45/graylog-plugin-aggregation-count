@@ -18,11 +18,8 @@
 package com.airbus_cyber_security.graylog.events.processor.aggregation;
 
 import com.airbus_cyber_security.graylog.events.processor.aggregation.checks.AggregationCount;
-import com.airbus_cyber_security.graylog.events.processor.aggregation.checks.AggregationField;
 import com.airbus_cyber_security.graylog.events.processor.aggregation.checks.Result;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
 import com.google.inject.assistedinject.Assisted;
 import org.graylog.events.event.Event;
 import org.graylog.events.event.EventFactory;
@@ -31,10 +28,7 @@ import org.graylog.events.event.EventWithContext;
 import org.graylog.events.processor.*;
 import org.graylog.events.processor.aggregation.AggregationSearch;
 import org.graylog.events.search.MoreSearch;
-import org.graylog.plugins.views.search.Parameter;
-import org.graylog2.indexer.results.ResultMessage;
 import org.graylog2.indexer.searches.Searches;
-import org.graylog2.plugin.Message;
 import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.AbsoluteRange;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
@@ -43,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class AggregationCountProcessor implements EventProcessor {
@@ -59,9 +52,6 @@ public class AggregationCountProcessor implements EventProcessor {
     private final DBEventProcessorStateService stateService;
     private final AggregationCount aggregationCount;
     private final AggregationCountProcessorConfig configuration;
-    private final MoreSearch moreSearch;
-    private final Searches searches;
-    private final AggregationSearch.Factory aggregationSearchFactory;
 
     @Inject
     public AggregationCountProcessor(@Assisted EventDefinition eventDefinition, EventProcessorDependencyCheck dependencyCheck,
@@ -72,9 +62,6 @@ public class AggregationCountProcessor implements EventProcessor {
         this.stateService = stateService;
         this.configuration = (AggregationCountProcessorConfig) eventDefinition.config();
         this.aggregationCount = new AggregationCount(searches, moreSearch, configuration, eventDefinition, aggregationSearchFactory);
-        this.moreSearch = moreSearch;
-        this.searches = searches;
-        this.aggregationSearchFactory = aggregationSearchFactory;
     }
 
     @Override
@@ -125,54 +112,7 @@ public class AggregationCountProcessor implements EventProcessor {
         }
 
         final TimeRange timeRange = AbsoluteRange.create(event.getTimerangeStart(), event.getTimerangeEnd());
-        boolean hasFields = !(configuration.groupingFields().isEmpty() && configuration.distinctionFields().isEmpty());
-        if (hasFields) {
-            List<MessageSummary> summaries = getMessageSummaries((int) limit, timeRange);
-
-            messageConsumer.accept(summaries);
-        } else {
-            final List<MessageSummary> summaries = getMessageSummariesWhenThereIsNoFields(limit, timeRange);
-
-            messageConsumer.accept(summaries);
-        }
-    }
-
-    private List<MessageSummary> getMessageSummaries(int limit, TimeRange timeRange) {
-        AggregationField aggregationField = new AggregationField(configuration, this.searches, limit, null, this.aggregationSearchFactory, this.eventDefinition);
-
-        List<String> nextFields = new ArrayList<>(aggregationField.getFields());
-        String firstField = nextFields.remove(0);
-
-        /* Get the matched term */
-        Map<String, Long> result = aggregationField.getTermsResult(this.configuration.stream(), timeRange, limit);
-
-        Map<String, List<String>> matchedTerms = new HashMap<>();
-        aggregationField.getMatchedTerm(matchedTerms, result);
-
-        /* Get the list of summary messages */
-        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
-        final String filter = "streams:" + this.configuration.stream();
-        aggregationField.getListMessageSummary(summaries, matchedTerms, firstField, nextFields, timeRange, filter);
-        return summaries;
-    }
-
-    private List<MessageSummary> getMessageSummariesWhenThereIsNoFields(long limit, TimeRange timeRange) throws EventProcessorException {
-        final List<MessageSummary> summaries = Lists.newArrayListWithCapacity((int) limit);
-        final AtomicLong msgCount = new AtomicLong(0L);
-        final MoreSearch.ScrollCallback callback = (messages, continueScrolling) -> {
-            for (final ResultMessage resultMessage : messages) {
-                if (msgCount.incrementAndGet() > limit) {
-                    continueScrolling.set(false);
-                    break;
-                }
-                final Message msg = resultMessage.getMessage();
-                summaries.add(new MessageSummary(resultMessage.getIndex(), msg));
-            }
-        };
-        Set<String> streams = new HashSet<>();
-        streams.add(configuration.stream());
-        Set<Parameter> parameters = new HashSet<>();
-        moreSearch.scrollQuery(configuration.searchQuery(), streams, parameters, timeRange, Math.min(500, Ints.saturatedCast(limit)), callback);
-        return summaries;
+        List<MessageSummary> summaries = this.aggregationCount.getMessageSummaries(limit, timeRange);
+        messageConsumer.accept(summaries);
     }
 }
