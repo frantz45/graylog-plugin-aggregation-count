@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
 
 public class AggregationCountTest {
 
-    private final int THRESHOLD = 2;
+    private static final int THRESHOLD = 2;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
