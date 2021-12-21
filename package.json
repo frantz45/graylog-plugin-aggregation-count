@@ -1,6 +1,6 @@
 {
   "name": "AggregationCount",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "Graylog plugin AggregationCount Web Interface",
   "repository": {
     "type": "git",

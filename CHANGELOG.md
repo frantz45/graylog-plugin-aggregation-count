@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/4.0.1...4.1.0)
+### Features
+* Add compatibility with Graylog 4.2
+
 ## [4.0.1](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/4.0.0...4.0.1) (2021-11-15)
 ### Bug Fixes
 * raised java.lang.IllegalStateException when evaluating an event definition with no grouping fields but a distinct field
