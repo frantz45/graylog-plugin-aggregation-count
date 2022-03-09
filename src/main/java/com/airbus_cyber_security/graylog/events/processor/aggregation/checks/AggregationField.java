@@ -157,10 +157,8 @@ public class AggregationField implements Check {
             String valuesAgregates = matchedTerm.getKey();
             List<String> listAggregates = matchedTerm.getValue();
 
-            if (!frequenciesFields.containsKey(valuesAgregates)) {
-                frequenciesFields.put(valuesAgregates, (long) listAggregates.size());
-                LOG.debug(listAggregates.size() + " aggregates for values " + valuesAgregates);
-            }
+            frequenciesFields.put(valuesAgregates, (long) listAggregates.size());
+            LOG.debug(listAggregates.size() + " aggregates for values " + valuesAgregates);
         }
 
         for (Map.Entry<String, Long> frequencyField : frequenciesFields.entrySet()) {
