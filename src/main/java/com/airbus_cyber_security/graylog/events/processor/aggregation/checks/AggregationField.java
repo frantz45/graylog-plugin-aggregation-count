@@ -149,9 +149,7 @@ public class AggregationField implements Check {
         }
     }
 
-    public boolean getListMessageSummary(List<MessageSummary> summaries, Map<String, List<String>> matchedTerms,
-                                         String firstField, List<String> nextFields, TimeRange range, int limit, String filter) {
-        boolean ruleTriggered = false;
+    public List<MessageSummary> getListMessageSummary(Map<String, List<String>> matchedTerms, String firstField, List<String> nextFields, TimeRange range, int limit, String filter) {
         Map<String, Long> frequenciesFields = new HashMap<>();
         for (Map.Entry<String, List<String>> matchedTerm : matchedTerms.entrySet()) {
             String valuesAgregates = matchedTerm.getKey();
@@ -161,10 +159,9 @@ public class AggregationField implements Check {
             LOG.debug(listAggregates.size() + " aggregates for values " + valuesAgregates);
         }
 
+        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
         for (Map.Entry<String, Long> frequencyField : frequenciesFields.entrySet()) {
             if (isTriggered(ThresholdType.fromString(this.aggregatesThresholdType), this.aggregatesThreshold, frequencyField.getValue())) {
-                ruleTriggered = true;
-
                 for (String matchedFieldValue : matchedTerms.get(frequencyField.getKey())) {
                     String searchQuery = buildSearchQuery(firstField, nextFields, matchedFieldValue);
 
@@ -176,7 +173,7 @@ public class AggregationField implements Check {
                 }
             }
         }
-        return ruleTriggered;
+        return summaries;
     }
 
     public Map<String, Long> getTermsResult(String stream, TimeRange timeRange, int limit) {
@@ -271,12 +268,11 @@ public class AggregationField implements Check {
         Map<String, List<String>> matchedTerms = getMatchedTerm(result);
 
         /* Get the list of summary messages */
-        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
         final String filter = "streams:" + this.configuration.stream();
-        boolean ruleTriggered = getListMessageSummary(summaries, matchedTerms, firstField, nextFields, range, limit, filter);
+        List<MessageSummary> summaries = getListMessageSummary(matchedTerms, firstField, nextFields, range, limit, filter);
 
         /* If rule triggered return the check result */
-        if (!ruleTriggered) {
+        if (summaries.size() == 0) {
             return this.resultBuilder.buildEmpty();
         }
 
@@ -294,9 +290,7 @@ public class AggregationField implements Check {
         Map<String, List<String>> matchedTerms = this.getMatchedTerm(result);
 
         /* Get the list of summary messages */
-        List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
         final String filter = "streams:" + this.configuration.stream();
-        this.getListMessageSummary(summaries, matchedTerms, firstField, nextFields, timeRange, limit, filter);
-        return summaries;
+        return this.getListMessageSummary(matchedTerms, firstField, nextFields, timeRange, limit, filter);
     }
 }
