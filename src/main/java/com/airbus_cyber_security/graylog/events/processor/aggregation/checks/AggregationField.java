@@ -18,6 +18,7 @@
 package com.airbus_cyber_security.graylog.events.processor.aggregation.checks;
 
 import com.airbus_cyber_security.graylog.events.processor.aggregation.AggregationCountProcessorConfig;
+import org.apache.logging.log4j.util.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -34,6 +35,7 @@ import org.graylog2.plugin.MessageSummary;
 import org.graylog2.plugin.indexer.searches.timeranges.TimeRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import java.util.*;
 
@@ -106,6 +108,7 @@ public class AggregationField implements Check {
             Long count = term.getValue();
 
             if (isTriggered(ThresholdType.fromString(this.thresholdType), this.threshold, count)) {
+                // TODO this is not really nice: we are splitting something we had before
                 String[] valuesFields = matchedFieldValue.split(KEY_SEPARATOR);
                 int i = 0;
                 StringBuilder bldStringValuesAgregates = new StringBuilder("Agregates:");
@@ -239,7 +242,15 @@ public class AggregationField implements Check {
     }
 
     private String buildTermKey(AggregationKeyResult keyResult) {
-        return Strings.join(keyResult.key(), KEY_SEPARATOR);
+        Collection<String> keys = keyResult.key();
+        StringBuilder builder = new StringBuilder();
+        keys.forEach(key -> {
+            if (0 < builder.length()) {
+                builder.append(" - ");
+            }
+            builder.append(key);
+        });
+        return builder.toString();
     }
 
     /**
