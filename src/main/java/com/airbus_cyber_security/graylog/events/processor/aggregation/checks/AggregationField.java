@@ -104,7 +104,7 @@ public class AggregationField implements Check {
             String matchedFieldValue = term.getKey();
             Long count = term.getValue();
 
-            if (isTriggered(ThresholdType.fromString(thresholdType), threshold, count)) {
+            if (isTriggered(ThresholdType.fromString(this.thresholdType), this.threshold, count)) {
                 String[] valuesFields = matchedFieldValue.split(" - ");
                 int i = 0;
                 StringBuilder bldStringValuesAgregates = new StringBuilder("Agregates:");
@@ -160,7 +160,7 @@ public class AggregationField implements Check {
         }
 
         for (Map.Entry<String, Long> frequencyField : frequenciesFields.entrySet()) {
-            if (isTriggered(ThresholdType.fromString(aggregatesThresholdType), aggregatesThreshold, frequencyField.getValue())) {
+            if (isTriggered(ThresholdType.fromString(this.aggregatesThresholdType), this.aggregatesThreshold, frequencyField.getValue())) {
                 ruleTriggered = true;
 
                 for (String matchedFieldValue : matchedTerms.get(frequencyField.getKey())) {
