@@ -39,6 +39,7 @@ import java.util.*;
 
 public class AggregationField implements Check {
     private static final Logger LOG = LoggerFactory.getLogger(AggregationField.class);
+    private static final String KEY_SEPARATOR = " - ";
 
     private final AggregationCountProcessorConfig configuration;
     private final Searches searches;
@@ -105,7 +106,7 @@ public class AggregationField implements Check {
             Long count = term.getValue();
 
             if (isTriggered(ThresholdType.fromString(this.thresholdType), this.threshold, count)) {
-                String[] valuesFields = matchedFieldValue.split(" - ");
+                String[] valuesFields = matchedFieldValue.split(KEY_SEPARATOR);
                 int i = 0;
                 StringBuilder bldStringValuesAgregates = new StringBuilder("Agregates:");
                 for (String field : getFields()) {
@@ -129,7 +130,7 @@ public class AggregationField implements Check {
     private String buildSearchQuery(String firstField, List<String> nextFields, String matchedFieldValue) {
         matchedFieldValue = matchedFieldValue.replaceAll("\\\\", "\\\\\\\\");
         for (String field : nextFields) {
-            matchedFieldValue = matchedFieldValue.replaceFirst(" - ", "\" AND " + field + ": \"");
+            matchedFieldValue = matchedFieldValue.replaceFirst(KEY_SEPARATOR, "\" AND " + field + ": \"");
         }
         return (this.configuration.searchQuery() + " AND " + firstField + ": \"" + matchedFieldValue + "\"");
     }
@@ -209,7 +210,7 @@ public class AggregationField implements Check {
     private Map<String, Long> convertResult(AggregationResult result) {
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
         for (AggregationKeyResult keyResult : result.keyResults()) {
-            String key = buildTermKey(keyResult.key());
+            String key = buildTermKey(keyResult);
             for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
                 Long value = Double.valueOf(seriesValue.value()).longValue();
                 terms.put(key, value);
@@ -224,7 +225,7 @@ public class AggregationField implements Check {
             // TODO should check in the graylog server code
             LOG.info("It seems there are two results with the same key. Listing all results...");
             for (AggregationKeyResult keyResult : result.keyResults()) {
-                String key = buildTermKey(keyResult.key());
+                String key = buildTermKey(keyResult);
                 LOG.info("key: {} ->", key);
                 for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
                     Long value = Double.valueOf(seriesValue.value()).longValue();
@@ -237,15 +238,8 @@ public class AggregationField implements Check {
         }
     }
 
-    private String buildTermKey(Collection<String> keys) {
-        StringBuilder builder = new StringBuilder();
-        keys.forEach(key -> {
-            if (0 < builder.length()) {
-                builder.append(" - ");
-            }
-            builder.append(key);
-        });
-        return builder.toString();
+    private String buildTermKey(AggregationKeyResult keyResult) {
+        return Strings.join(keyResult.key(), KEY_SEPARATOR);
     }
 
     /**
