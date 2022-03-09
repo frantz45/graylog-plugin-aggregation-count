@@ -197,7 +197,12 @@ public class AggregationField implements Check {
         AggregationSearch search = this.aggregationSearchFactory.create(config, parameters, owner, this.eventDefinition);
         try {
             AggregationResult result = search.doSearch();
-            return convertResult(result);
+            try {
+                return convertResult(result);
+            } catch (IllegalArgumentException e) {
+                LOG.info("Complementary information in case of exception, timerange: {}, {}", timeRange.getFrom(), timeRange.getTo());
+                throw e;
+            }
         } catch (EventProcessorException e) {
             e.printStackTrace();
         }
@@ -217,14 +222,21 @@ public class AggregationField implements Check {
         }
 
         try {
+            // FIX: it seems there may be the same key several times in the result.
+            // A suitable fix would probably be to retain only the max (in case of a condition MORE)
+            // and the min (in case of a condition LESS)
+            // This gets a bit too complex for my taste
+            // It is probably better to just forget about distinct field (and use the graylog builtin aggregation facility)
             return terms.build();
         } catch (IllegalArgumentException e) {
             // If this ever happens, then it means it is possible to have two keyResults with the same key
             // => then, instead of putting the value in terms, should maybe add or replace the value (depends on the exact behavior of graylog)
             // TODO should check in the graylog server code
             LOG.info("It seems there are two results with the same key. Listing all results...");
+            LOG.info("Result's effective timerange {}, {}", result.effectiveTimerange().from(), result.effectiveTimerange().to());
             for (AggregationKeyResult keyResult : result.keyResults()) {
                 String key = buildTermKey(keyResult);
+                LOG.info("timestamp: {}", keyResult.timestamp());
                 LOG.info("key: {} ->", key);
                 for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
                     Long value = Double.valueOf(seriesValue.value()).longValue();
