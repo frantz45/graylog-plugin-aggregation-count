@@ -149,7 +149,7 @@ public class AggregationField implements Check {
         }
     }
 
-    public List<MessageSummary> getListMessageSummary(Map<String, List<String>> matchedTerms, String firstField, List<String> nextFields, TimeRange range, int limit, String filter) {
+    public List<MessageSummary> getListMessageSummary(Map<String, List<String>> matchedTerms, String firstField, List<String> nextFields, TimeRange range, int limit) {
         Map<String, Long> frequenciesFields = new HashMap<>();
         for (Map.Entry<String, List<String>> matchedTerm : matchedTerms.entrySet()) {
             String valuesAgregates = matchedTerm.getKey();
@@ -159,6 +159,7 @@ public class AggregationField implements Check {
             LOG.debug(listAggregates.size() + " aggregates for values " + valuesAgregates);
         }
 
+        String filter = "streams:" + this.configuration.stream();
         List<MessageSummary> summaries = Lists.newArrayListWithCapacity(limit);
         for (Map.Entry<String, Long> frequencyField : frequenciesFields.entrySet()) {
             if (isTriggered(ThresholdType.fromString(this.aggregatesThresholdType), this.aggregatesThreshold, frequencyField.getValue())) {
@@ -262,14 +263,11 @@ public class AggregationField implements Check {
         List<String> nextFields = new ArrayList<>(getFields());
         String firstField = nextFields.remove(0);
 
-        /* Get the matched term */
         Map<String, Long> result = getTermsResult(this.configuration.stream(), range, limit);
 
         Map<String, List<String>> matchedTerms = getMatchedTerm(result);
 
-        /* Get the list of summary messages */
-        final String filter = "streams:" + this.configuration.stream();
-        List<MessageSummary> summaries = getListMessageSummary(matchedTerms, firstField, nextFields, range, limit, filter);
+        List<MessageSummary> summaries = getListMessageSummary(matchedTerms, firstField, nextFields, range, limit);
 
         /* If rule triggered return the check result */
         if (summaries.size() == 0) {
@@ -284,13 +282,10 @@ public class AggregationField implements Check {
         List<String> nextFields = new ArrayList<>(this.getFields());
         String firstField = nextFields.remove(0);
 
-        /* Get the matched term */
         Map<String, Long> result = this.getTermsResult(this.configuration.stream(), timeRange, limit);
 
         Map<String, List<String>> matchedTerms = this.getMatchedTerm(result);
 
-        /* Get the list of summary messages */
-        final String filter = "streams:" + this.configuration.stream();
-        return this.getListMessageSummary(matchedTerms, firstField, nextFields, timeRange, limit, filter);
+        return this.getListMessageSummary(matchedTerms, firstField, nextFields, timeRange, limit);
     }
 }
