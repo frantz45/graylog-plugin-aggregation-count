@@ -200,6 +200,10 @@ public class AggregationField implements Check {
             return convertResult(result);
         } catch (EventProcessorException e) {
             e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            LOG.error("Error when converting result");
+            e.printStackTrace();
+            LOG.info("Complementary information in case of exception, timerange: {}, {}", timeRange.getFrom(), timeRange.getTo());
         }
 
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
@@ -221,7 +225,6 @@ public class AggregationField implements Check {
         } catch (IllegalArgumentException e) {
             // If this ever happens, then it means it is possible to have two keyResults with the same key
             // => then, instead of putting the value in terms, should maybe add or replace the value (depends on the exact behavior of graylog)
-            // TODO should check in the graylog server code
             LOG.info("It seems there are two results with the same key. Listing all results...");
             for (AggregationKeyResult keyResult : result.keyResults()) {
                 String key = buildTermKey(keyResult.key());
