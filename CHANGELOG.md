@@ -4,12 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [4.0.2](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/4.0.1...4.0.2) (2022-06-28)
 ### Bug Fixes
+* Log an error instead of raising an exception when there are several results with the same grouping and distinct field 
+  values (see Alert Wizard plugin [issue 60](https://github.com/airbus-cyber/graylog-plugin-alert-wizard/issues/60))
 
 ## [4.0.1](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/4.0.0...4.0.1) (2021-11-15)
 ### Bug Fixes
-* raised java.lang.IllegalStateException when evaluating an event definition with no grouping fields but a distinct field
-* did not trigger for event definitions with distinct fields
-* raise java.lang.IllegalArgumentException when triggering an event definition with several grouping fields
+* Raised java.lang.IllegalStateException when evaluating an event definition with no grouping fields but a distinct field
+* Did not trigger for event definitions with distinct fields
+* Raise java.lang.IllegalArgumentException when triggering an event definition with several grouping fields
 
 ## [4.0.0](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/2.2.0...4.0.0) (2021-09-30)
 ### Features
