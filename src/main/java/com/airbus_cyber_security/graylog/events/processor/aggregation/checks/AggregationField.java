@@ -197,14 +197,13 @@ public class AggregationField implements Check {
         AggregationSearch search = this.aggregationSearchFactory.create(config, parameters, owner, this.eventDefinition);
         try {
             AggregationResult result = search.doSearch();
-            try {
-                return convertResult(result);
-            } catch (IllegalArgumentException e) {
-                LOG.info("Complementary information in case of exception, timerange: {}, {}", timeRange.getFrom(), timeRange.getTo());
-                throw e;
-            }
+            return convertResult(result);
         } catch (EventProcessorException e) {
             e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            LOG.error("Error when converting result");
+            e.printStackTrace();
+            LOG.info("Complementary information in case of exception, timerange: {}, {}", timeRange.getFrom(), timeRange.getTo());
         }
 
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
@@ -231,7 +230,6 @@ public class AggregationField implements Check {
         } catch (IllegalArgumentException e) {
             // If this ever happens, then it means it is possible to have two keyResults with the same key
             // => then, instead of putting the value in terms, should maybe add or replace the value (depends on the exact behavior of graylog)
-            // TODO should check in the graylog server code
             LOG.info("It seems there are two results with the same key. Listing all results...");
             LOG.info("Result's effective timerange {}, {}", result.effectiveTimerange().from(), result.effectiveTimerange().to());
             for (AggregationKeyResult keyResult : result.keyResults()) {
