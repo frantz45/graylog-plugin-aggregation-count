@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [4.1.1](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/4.1.0...4.1.1)
 ### Bug Fixes
+* Log an error instead of raising an exception when there are several results with the same grouping and distinct field
+  values (see Alert Wizard plugin [issue 60](https://github.com/airbus-cyber/graylog-plugin-alert-wizard/issues/60))
 
 ## [4.1.0](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/compare/4.0.1...4.1.0)
 ### Features
