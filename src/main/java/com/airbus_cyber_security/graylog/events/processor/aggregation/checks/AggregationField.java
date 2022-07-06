@@ -212,7 +212,7 @@ public class AggregationField implements Check {
 
     private Map<String, Long> convertResult(AggregationResult result) {
         ImmutableMap.Builder<String, Long> terms = ImmutableMap.builder();
-        for (AggregationKeyResult keyResult : result.keyResults()) {
+        for (AggregationKeyResult keyResult: result.keyResults()) {
             String key = buildTermKey(keyResult);
             for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
                 Long value = Double.valueOf(seriesValue.value()).longValue();
@@ -232,11 +232,11 @@ public class AggregationField implements Check {
             // => then, instead of putting the value in terms, should maybe add or replace the value (depends on the exact behavior of graylog)
             LOG.info("It seems there are two results with the same key. Listing all results...");
             LOG.info("Result's effective timerange {}, {}", result.effectiveTimerange().from(), result.effectiveTimerange().to());
-            for (AggregationKeyResult keyResult : result.keyResults()) {
+            for (AggregationKeyResult keyResult: result.keyResults()) {
                 String key = buildTermKey(keyResult);
                 LOG.info("timestamp: {}", keyResult.timestamp());
                 LOG.info("key: {} ->", key);
-                for (AggregationSeriesValue seriesValue : keyResult.seriesValues()) {
+                for (AggregationSeriesValue seriesValue: keyResult.seriesValues()) {
                     Long value = Double.valueOf(seriesValue.value()).longValue();
                     LOG.info("value: {}", value);
                     terms.put(key, value);
