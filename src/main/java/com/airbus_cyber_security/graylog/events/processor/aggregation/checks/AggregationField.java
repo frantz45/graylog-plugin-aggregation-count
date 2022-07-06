@@ -201,8 +201,7 @@ public class AggregationField implements Check {
         } catch (EventProcessorException e) {
             e.printStackTrace();
         } catch (IllegalArgumentException e) {
-            LOG.error("Error when converting result");
-            e.printStackTrace();
+            LOG.error("Error when converting result: {}", e.getMessage());
             LOG.info("Complementary information in case of exception, timerange: {}, {}", timeRange.getFrom(), timeRange.getTo());
         }
 
