@@ -1,3 +1,9 @@
+# WARNING:
+
+**This plugin is not maintained anymore.<br>
+Graylog has evolved and its built-in "Filter & Aggregation" feature allows to use aggregation in Event Definition.<br>
+So this plugin is not needed anymore.**
+
 # Aggregation Count Plugin for Graylog
 
 [![Continuous Integration](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/actions/workflows/ci.yml/badge.svg)](https://github.com/airbus-cyber/graylog-plugin-aggregation-count/actions/workflows/ci.yml)
